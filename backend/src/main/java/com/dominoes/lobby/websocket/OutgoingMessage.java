@@ -3,6 +3,7 @@ package com.dominoes.lobby.websocket;
 import com.dominoes.lobby.dto.GameStateDto;
 import com.dominoes.lobby.dto.LobbyStateDto;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -19,10 +20,11 @@ public record OutgoingMessage(
     }
 
     public static OutgoingMessage gameState(GameStateDto state) {
-        return new OutgoingMessage("GAME_STATE", Map.of(
-                "inProgress", state.inProgress(),
-                "boneyardCount", state.boneyardCount()
-        ));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("inProgress", state.inProgress());
+        payload.put("boneyardCount", state.boneyardCount());
+        payload.put("hand", state.hand());
+        return new OutgoingMessage("GAME_STATE", payload);
     }
 
     public static OutgoingMessage joinAck(UUID userId) {
@@ -31,6 +33,10 @@ public record OutgoingMessage(
 
     public static OutgoingMessage startGameAck() {
         return new OutgoingMessage("START_GAME_ACK", Map.of());
+    }
+
+    public static OutgoingMessage endGameAck() {
+        return new OutgoingMessage("END_GAME_ACK", Map.of());
     }
 
     public static OutgoingMessage error(String message) {

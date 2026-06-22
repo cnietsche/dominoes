@@ -4,6 +4,7 @@ import com.dominoes.lobby.dto.LobbyStateDto;
 import com.dominoes.lobby.entity.User;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameInProgressException;
+import com.dominoes.lobby.exception.GameNotInProgressException;
 import com.dominoes.lobby.exception.LobbyFullException;
 import com.dominoes.lobby.service.GameService;
 import com.dominoes.lobby.service.LobbyService;
@@ -45,6 +46,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 case "JOIN" -> handleJoin(session, sessionId, incoming.nickname());
                 case "LEAVE" -> handleLeave(session, sessionId);
                 case "START_GAME" -> handleStartGame(session, sessionId);
+                case "END_GAME" -> handleEndGame(session, sessionId);
                 default -> sendToSession(session, OutgoingMessage.error("Tipo de mensagem desconhecido."));
             }
         }
@@ -94,7 +96,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         broadcastLobbyState();
         broadcastGameState();
         sendToSession(session, OutgoingMessage.lobbyState(lobbyService.getLobbyState()));
-        sendToSession(session, OutgoingMessage.gameState(gameService.getGameState()));
+        sendToSession(session, OutgoingMessage.gameState(gameService.getGameStateForUser(null)));
     }
 
     private void handleStartGame(WebSocketSession session, String sessionId) throws IOException {
@@ -113,6 +115,22 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private void handleEndGame(WebSocketSession session, String sessionId) throws IOException {
+        if (sessionRegistry.findUserId(sessionId).isEmpty()) {
+            sendToSession(session, OutgoingMessage.error("Você precisa estar no lobby para finalizar a partida."));
+            return;
+        }
+
+        try {
+            gameService.finishGame();
+            sendToSession(session, OutgoingMessage.endGameAck());
+            broadcastGameState();
+            log.info("Game ended by session {}", sessionId);
+        } catch (GameNotInProgressException ex) {
+            sendToSession(session, OutgoingMessage.error(ex.getMessage()));
+        }
+    }
+
     private void broadcastLobbyState() {
         LobbyStateDto state = lobbyService.getLobbyState();
         OutgoingMessage message = OutgoingMessage.lobbyState(state);
@@ -126,10 +144,10 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void broadcastGameState() {
-        OutgoingMessage message = OutgoingMessage.gameState(gameService.getGameState());
         sessionRegistry.getAllSessions().forEach(target -> {
             try {
-                sendToSession(target, message);
+                UUID userId = sessionRegistry.findUserId(target.getId()).orElse(null);
+                sendToSession(target, OutgoingMessage.gameState(gameService.getGameStateForUser(userId)));
             } catch (IOException ex) {
                 log.warn("Failed to broadcast game state to session {}", target.getId(), ex);
             }

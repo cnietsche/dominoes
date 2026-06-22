@@ -2,6 +2,7 @@ import { NicknameForm } from './components/NicknameForm';
 import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyStatus } from './components/LobbyStatus';
 import { GameArea } from './components/GameArea';
+import { PlayerHand } from './components/PlayerHand';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
 
 function App() {
@@ -15,8 +16,10 @@ function App() {
     busy,
     inProgress,
     boneyardCount,
+    hand,
     join,
     startGame,
+    endGame,
   } = useLobbyWebSocket();
 
   return (
@@ -30,6 +33,9 @@ function App() {
               size={size}
               connected={connected}
               joined={joined}
+              inProgress={inProgress}
+              busy={busy}
+              onEndGame={endGame}
             />
           </div>
           <LobbyGrid users={users} myUserId={myUserId} />
@@ -62,6 +68,12 @@ function App() {
           />
         )}
       </main>
+
+      {joined && inProgress && (
+        <footer className="mt-auto">
+          <PlayerHand pieces={hand} />
+        </footer>
+      )}
     </div>
   );
 }

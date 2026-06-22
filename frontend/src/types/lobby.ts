@@ -12,9 +12,10 @@ export interface LobbyStatePayload {
 export interface GameStatePayload {
   inProgress: boolean;
   boneyardCount: number;
+  hand: string[];
 }
 
-export type OutgoingMessageType = 'JOIN' | 'LEAVE' | 'START_GAME';
+export type OutgoingMessageType = 'JOIN' | 'LEAVE' | 'START_GAME' | 'END_GAME';
 
 export interface OutgoingMessage {
   type: OutgoingMessageType;
@@ -25,6 +26,7 @@ export type IncomingMessageType =
   | 'LOBBY_STATE'
   | 'JOIN_ACK'
   | 'START_GAME_ACK'
+  | 'END_GAME_ACK'
   | 'GAME_STATE'
   | 'ERROR';
 

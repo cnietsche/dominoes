@@ -5,6 +5,7 @@ import com.dominoes.lobby.dto.GameStateDto;
 import com.dominoes.lobby.entity.Lobby;
 import com.dominoes.lobby.entity.User;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
+import com.dominoes.lobby.exception.GameNotInProgressException;
 import com.dominoes.lobby.repository.LobbyRepository;
 import com.dominoes.lobby.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -57,6 +59,16 @@ public class GameService {
     }
 
     @Transactional
+    public synchronized GameStateDto finishGame() {
+        Lobby lobby = getLobby();
+        if (!lobby.isInProgress()) {
+            throw new GameNotInProgressException();
+        }
+        endGame(lobby);
+        return toGameState(lobby);
+    }
+
+    @Transactional
     public synchronized void endGame(Lobby lobby) {
         if (!lobby.isInProgress()) {
             return;
@@ -77,9 +89,14 @@ public class GameService {
 
     @Transactional(readOnly = true)
     public GameStateDto getGameState() {
+        return getGameStateForUser(null);
+    }
+
+    @Transactional(readOnly = true)
+    public GameStateDto getGameStateForUser(UUID userId) {
         return lobbyRepository.findFirstByOrderByIdAsc()
-                .map(this::toGameState)
-                .orElse(new GameStateDto(false, 0));
+                .map(lobby -> toGameState(lobby, userId))
+                .orElse(new GameStateDto(false, 0, List.of()));
     }
 
     private Lobby getLobby() {
@@ -88,6 +105,16 @@ public class GameService {
     }
 
     private GameStateDto toGameState(Lobby lobby) {
-        return new GameStateDto(lobby.isInProgress(), lobby.getBoneyard().size());
+        return toGameState(lobby, null);
+    }
+
+    private GameStateDto toGameState(Lobby lobby, UUID userId) {
+        List<String> hand = List.of();
+        if (userId != null && lobby.isInProgress()) {
+            hand = userRepository.findById(userId)
+                    .map(user -> user.getHand().stream().map(PieceEnum::getCode).toList())
+                    .orElse(List.of());
+        }
+        return new GameStateDto(lobby.isInProgress(), lobby.getBoneyard().size(), hand);
     }
 }

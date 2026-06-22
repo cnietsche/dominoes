@@ -27,9 +27,13 @@ function parseLobbyState(payload: Record<string, unknown>): LobbyStatePayload {
 }
 
 function parseGameState(payload: Record<string, unknown>): GameStatePayload {
+  const hand = Array.isArray(payload.hand)
+    ? (payload.hand as string[])
+    : [];
   return {
     inProgress: Boolean(payload.inProgress),
     boneyardCount: Number(payload.boneyardCount ?? 0),
+    hand,
   };
 }
 
@@ -43,6 +47,7 @@ export function useLobbyWebSocket() {
   const [busy, setBusy] = useState(false);
   const [inProgress, setInProgress] = useState(false);
   const [boneyardCount, setBoneyardCount] = useState(0);
+  const [hand, setHand] = useState<string[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -61,6 +66,7 @@ export function useLobbyWebSocket() {
     const state = parseGameState(payload);
     setInProgress(state.inProgress);
     setBoneyardCount(state.boneyardCount);
+    setHand(state.hand);
   }, []);
 
   const handleIncomingMessage = useCallback(
@@ -153,6 +159,7 @@ export function useLobbyWebSocket() {
         setMyUserId(null);
         setInProgress(false);
         setBoneyardCount(0);
+        setHand([]);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
       };
@@ -197,6 +204,11 @@ export function useLobbyWebSocket() {
     setError(null);
   }, [sendMessage]);
 
+  const endGame = useCallback(async () => {
+    await sendMessage({ type: 'END_GAME' }, ['END_GAME_ACK', 'ERROR']);
+    setError(null);
+  }, [sendMessage]);
+
   useEffect(() => {
     const handlePageHide = () => {
       if (joinedRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -224,8 +236,10 @@ export function useLobbyWebSocket() {
     busy,
     inProgress,
     boneyardCount,
+    hand,
     join,
     leave,
     startGame,
+    endGame,
   };
 }
