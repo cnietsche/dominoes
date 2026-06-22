@@ -9,14 +9,24 @@ export interface LobbyStatePayload {
   users: LobbyUser[];
 }
 
-export type OutgoingMessageType = 'JOIN' | 'LEAVE';
+export interface GameStatePayload {
+  inProgress: boolean;
+  boneyardCount: number;
+}
+
+export type OutgoingMessageType = 'JOIN' | 'LEAVE' | 'START_GAME';
 
 export interface OutgoingMessage {
   type: OutgoingMessageType;
   nickname?: string;
 }
 
-export type IncomingMessageType = 'LOBBY_STATE' | 'JOIN_ACK' | 'ERROR';
+export type IncomingMessageType =
+  | 'LOBBY_STATE'
+  | 'JOIN_ACK'
+  | 'START_GAME_ACK'
+  | 'GAME_STATE'
+  | 'ERROR';
 
 export interface IncomingMessage {
   type: IncomingMessageType;

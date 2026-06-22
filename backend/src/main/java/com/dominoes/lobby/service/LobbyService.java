@@ -4,6 +4,7 @@ import com.dominoes.lobby.dto.LobbyStateDto;
 import com.dominoes.lobby.dto.UserDto;
 import com.dominoes.lobby.entity.Lobby;
 import com.dominoes.lobby.entity.User;
+import com.dominoes.lobby.exception.GameInProgressException;
 import com.dominoes.lobby.exception.LobbyFullException;
 import com.dominoes.lobby.repository.LobbyRepository;
 import com.dominoes.lobby.repository.UserRepository;
@@ -21,6 +22,7 @@ public class LobbyService {
 
     private final LobbyRepository lobbyRepository;
     private final UserRepository userRepository;
+    private final GameService gameService;
 
     @Value("${lobby.size}")
     private int lobbySize;
@@ -28,6 +30,9 @@ public class LobbyService {
     @Transactional
     public synchronized User joinLobby(String nickname) {
         Lobby lobby = getOrCreateLobby();
+        if (lobby.isInProgress()) {
+            throw new GameInProgressException();
+        }
         long currentCount = userRepository.countByLobby(lobby);
         if (currentCount >= lobby.getSize()) {
             throw new LobbyFullException();
@@ -39,7 +44,13 @@ public class LobbyService {
 
     @Transactional
     public synchronized void leaveLobby(UUID userId) {
-        userRepository.deleteById(userId);
+        userRepository.findById(userId).ifPresent(user -> {
+            Lobby lobby = user.getLobby();
+            if (lobby.isInProgress()) {
+                gameService.endGame(lobby);
+            }
+            userRepository.deleteById(userId);
+        });
     }
 
     @Transactional(readOnly = true)

@@ -1,5 +1,6 @@
 package com.dominoes.lobby.websocket;
 
+import com.dominoes.lobby.dto.GameStateDto;
 import com.dominoes.lobby.dto.LobbyStateDto;
 
 import java.util.Map;
@@ -17,8 +18,19 @@ public record OutgoingMessage(
         ));
     }
 
+    public static OutgoingMessage gameState(GameStateDto state) {
+        return new OutgoingMessage("GAME_STATE", Map.of(
+                "inProgress", state.inProgress(),
+                "boneyardCount", state.boneyardCount()
+        ));
+    }
+
     public static OutgoingMessage joinAck(UUID userId) {
         return new OutgoingMessage("JOIN_ACK", Map.of("userId", userId.toString()));
+    }
+
+    public static OutgoingMessage startGameAck() {
+        return new OutgoingMessage("START_GAME_ACK", Map.of());
     }
 
     public static OutgoingMessage error(String message) {

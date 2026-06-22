@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
+  GameStatePayload,
   IncomingMessage,
   LobbyStatePayload,
   LobbyUser,
@@ -25,6 +26,13 @@ function parseLobbyState(payload: Record<string, unknown>): LobbyStatePayload {
   };
 }
 
+function parseGameState(payload: Record<string, unknown>): GameStatePayload {
+  return {
+    inProgress: Boolean(payload.inProgress),
+    boneyardCount: Number(payload.boneyardCount ?? 0),
+  };
+}
+
 export function useLobbyWebSocket() {
   const [users, setUsers] = useState<LobbyUser[]>([]);
   const [size, setSize] = useState(4);
@@ -33,6 +41,8 @@ export function useLobbyWebSocket() {
   const [connected, setConnected] = useState(false);
   const [joined, setJoined] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [inProgress, setInProgress] = useState(false);
+  const [boneyardCount, setBoneyardCount] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -47,10 +57,20 @@ export function useLobbyWebSocket() {
     }
   }, []);
 
+  const applyGameState = useCallback((payload: Record<string, unknown>) => {
+    const state = parseGameState(payload);
+    setInProgress(state.inProgress);
+    setBoneyardCount(state.boneyardCount);
+  }, []);
+
   const handleIncomingMessage = useCallback(
     (message: IncomingMessage) => {
       if (message.type === 'LOBBY_STATE') {
         applyLobbyState(message.payload);
+      }
+
+      if (message.type === 'GAME_STATE') {
+        applyGameState(message.payload);
       }
 
       const pending = pendingRef.current;
@@ -64,7 +84,7 @@ export function useLobbyWebSocket() {
         setError(String(message.payload.message ?? 'Erro desconhecido.'));
       }
     },
-    [applyLobbyState],
+    [applyLobbyState, applyGameState],
   );
 
   const sendMessage = useCallback(
@@ -131,6 +151,8 @@ export function useLobbyWebSocket() {
         setJoined(false);
         joinedRef.current = false;
         setMyUserId(null);
+        setInProgress(false);
+        setBoneyardCount(0);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
       };
@@ -170,6 +192,11 @@ export function useLobbyWebSocket() {
     setMyUserId(null);
   }, [sendMessage]);
 
+  const startGame = useCallback(async () => {
+    await sendMessage({ type: 'START_GAME' }, ['START_GAME_ACK', 'ERROR']);
+    setError(null);
+  }, [sendMessage]);
+
   useEffect(() => {
     const handlePageHide = () => {
       if (joinedRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -195,7 +222,10 @@ export function useLobbyWebSocket() {
     connected,
     joined,
     busy,
+    inProgress,
+    boneyardCount,
     join,
     leave,
+    startGame,
   };
 }

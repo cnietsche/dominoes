@@ -1,11 +1,23 @@
 import { NicknameForm } from './components/NicknameForm';
 import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyStatus } from './components/LobbyStatus';
+import { GameArea } from './components/GameArea';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
 
 function App() {
-  const { users, size, myUserId, error, connected, joined, busy, join } =
-    useLobbyWebSocket();
+  const {
+    users,
+    size,
+    myUserId,
+    error,
+    connected,
+    joined,
+    busy,
+    inProgress,
+    boneyardCount,
+    join,
+    startGame,
+  } = useLobbyWebSocket();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -40,12 +52,14 @@ function App() {
             />
           </div>
         ) : (
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold text-white">Você está no lobby</h2>
-            <p className="mt-2 text-slate-400">
-              Aguarde outros jogadores. Ao fechar esta aba, seu slot será liberado.
-            </p>
-          </div>
+          <GameArea
+            inProgress={inProgress}
+            boneyardCount={boneyardCount}
+            userCount={users.length}
+            busy={busy}
+            error={error}
+            onStart={startGame}
+          />
         )}
       </main>
     </div>
