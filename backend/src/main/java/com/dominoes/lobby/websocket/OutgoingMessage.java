@@ -1,0 +1,27 @@
+package com.dominoes.lobby.websocket;
+
+import com.dominoes.lobby.dto.LobbyStateDto;
+
+import java.util.Map;
+import java.util.UUID;
+
+public record OutgoingMessage(
+        String type,
+        Map<String, Object> payload
+) {
+    public static OutgoingMessage lobbyState(LobbyStateDto state) {
+        return new OutgoingMessage("LOBBY_STATE", Map.of(
+                "lobbyId", state.lobbyId() != null ? state.lobbyId().toString() : "",
+                "size", state.size(),
+                "users", state.users()
+        ));
+    }
+
+    public static OutgoingMessage joinAck(UUID userId) {
+        return new OutgoingMessage("JOIN_ACK", Map.of("userId", userId.toString()));
+    }
+
+    public static OutgoingMessage error(String message) {
+        return new OutgoingMessage("ERROR", Map.of("message", message));
+    }
+}

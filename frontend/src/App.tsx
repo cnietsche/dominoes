@@ -1,0 +1,55 @@
+import { NicknameForm } from './components/NicknameForm';
+import { LobbyGrid } from './components/LobbyGrid';
+import { LobbyStatus } from './components/LobbyStatus';
+import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
+
+function App() {
+  const { users, size, myUserId, error, connected, joined, busy, join } =
+    useLobbyWebSocket();
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-slate-700 bg-slate-900/80 px-6 py-4 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl font-bold text-white">Lobby Online</h1>
+            <LobbyStatus
+              userCount={users.length}
+              size={size}
+              connected={connected}
+              joined={joined}
+            />
+          </div>
+          <LobbyGrid users={users} myUserId={myUserId} />
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-12">
+        {!joined ? (
+          <div className="w-full max-w-md space-y-6 text-center">
+            <div>
+              <h2 className="text-2xl font-semibold text-white">Entrar no lobby</h2>
+              <p className="mt-2 text-slate-400">
+                Informe um nickname para ocupar um slot na sala.
+              </p>
+            </div>
+            <NicknameForm
+              onSubmit={join}
+              disabled={busy}
+              error={error}
+            />
+          </div>
+        ) : (
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-white">Você está no lobby</h2>
+            <p className="mt-2 text-slate-400">
+              Aguarde outros jogadores. Ao fechar esta aba, seu slot será liberado.
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;

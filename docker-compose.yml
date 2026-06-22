@@ -1,0 +1,19 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      LOBBY_SIZE: ${LOBBY_SIZE:-4}
+    networks:
+      - lobby-net
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - lobby-net
+
+networks:
+  lobby-net:
