@@ -28,6 +28,7 @@ function App() {
     startGame,
     endGame,
     playPiece,
+    drawFromBoneyard,
     clearError,
   } = useLobbyWebSocket();
 
@@ -103,6 +104,8 @@ function App() {
             currentPlayerId={currentPlayerId}
             inProgress={inProgress}
             boneyardCount={boneyardCount}
+            busy={busy}
+            onDrawFromBoneyard={drawFromBoneyard}
           />
         </div>
       </header>

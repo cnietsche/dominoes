@@ -7,6 +7,8 @@ interface LobbyGridProps {
   currentPlayerId: string | null;
   inProgress: boolean;
   boneyardCount: number;
+  busy: boolean;
+  onDrawFromBoneyard: () => void;
 }
 
 export function LobbyGrid({
@@ -15,7 +17,12 @@ export function LobbyGrid({
   currentPlayerId,
   inProgress,
   boneyardCount,
+  busy,
+  onDrawFromBoneyard,
 }: LobbyGridProps) {
+  const isMyTurn = myUserId !== null && myUserId === currentPlayerId;
+  const canDraw = isMyTurn && boneyardCount > 0 && !busy;
+
   return (
     <div className="flex items-center gap-4">
       <div className="min-w-0 flex-1">
@@ -38,7 +45,11 @@ export function LobbyGrid({
       </div>
       {inProgress && (
         <div className="shrink-0 self-start">
-          <BoneyardIndicator count={boneyardCount} />
+          <BoneyardIndicator
+            count={boneyardCount}
+            disabled={!canDraw}
+            onDraw={onDrawFromBoneyard}
+          />
         </div>
       )}
     </div>

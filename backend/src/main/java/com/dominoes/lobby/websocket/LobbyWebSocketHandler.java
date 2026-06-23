@@ -4,6 +4,7 @@ import com.dominoes.lobby.domain.PieceEnum;
 import com.dominoes.lobby.domain.TableSide;
 import com.dominoes.lobby.dto.LobbyStateDto;
 import com.dominoes.lobby.entity.User;
+import com.dominoes.lobby.exception.BoneyardEmptyException;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
@@ -53,6 +54,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 case "START_GAME" -> handleStartGame(session, sessionId);
                 case "END_GAME" -> handleEndGame(session, sessionId);
                 case "PLAY_PIECE" -> handlePlayPiece(session, sessionId, incoming.piece(), incoming.side());
+                case "DRAW_FROM_BONEYARD" -> handleDrawFromBoneyard(session, sessionId);
                 default -> sendToSession(session, OutgoingMessage.error("Tipo de mensagem desconhecido."));
             }
         }
@@ -167,6 +169,24 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             sendToSession(session, OutgoingMessage.error("Lado da mesa inválido."));
         } catch (NotYourTurnException | PieceNotInHandException | PieceDoesNotMatchException
                 | GameNotInProgressException ex) {
+            sendToSession(session, OutgoingMessage.error(ex.getMessage()));
+        }
+    }
+
+    private void handleDrawFromBoneyard(WebSocketSession session, String sessionId) throws IOException {
+        UUID userId = sessionRegistry.findUserId(sessionId).orElse(null);
+        if (userId == null) {
+            sendToSession(session, OutgoingMessage.error("Você precisa estar no lobby para comprar do monte."));
+            return;
+        }
+
+        try {
+            gameService.drawFromBoneyard(userId);
+            sendToSession(session, OutgoingMessage.drawFromBoneyardAck());
+            broadcastLobbyState();
+            broadcastGameState();
+            log.info("User {} drew from boneyard", userId);
+        } catch (NotYourTurnException | BoneyardEmptyException | GameNotInProgressException ex) {
             sendToSession(session, OutgoingMessage.error(ex.getMessage()));
         }
     }

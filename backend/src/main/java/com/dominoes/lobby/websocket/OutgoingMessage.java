@@ -46,6 +46,10 @@ public record OutgoingMessage(
         return new OutgoingMessage("PLAY_PIECE_ACK", Map.of());
     }
 
+    public static OutgoingMessage drawFromBoneyardAck() {
+        return new OutgoingMessage("DRAW_FROM_BONEYARD_ACK", Map.of());
+    }
+
     public static OutgoingMessage endGameAck() {
         return new OutgoingMessage("END_GAME_ACK", Map.of());
     }

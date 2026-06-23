@@ -265,6 +265,14 @@ export function useLobbyWebSocket() {
     [sendMessage],
   );
 
+  const drawFromBoneyard = useCallback(async () => {
+    await sendMessage(
+      { type: 'DRAW_FROM_BONEYARD' },
+      ['DRAW_FROM_BONEYARD_ACK', 'ERROR'],
+    );
+    setError(null);
+  }, [sendMessage]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -304,6 +312,7 @@ export function useLobbyWebSocket() {
     startGame,
     endGame,
     playPiece,
+    drawFromBoneyard,
     clearError,
   };
 }

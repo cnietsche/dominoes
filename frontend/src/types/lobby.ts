@@ -30,7 +30,8 @@ export type OutgoingMessageType =
   | 'LEAVE'
   | 'START_GAME'
   | 'END_GAME'
-  | 'PLAY_PIECE';
+  | 'PLAY_PIECE'
+  | 'DRAW_FROM_BONEYARD';
 
 export interface OutgoingMessage {
   type: OutgoingMessageType;
@@ -45,6 +46,7 @@ export type IncomingMessageType =
   | 'START_GAME_ACK'
   | 'END_GAME_ACK'
   | 'PLAY_PIECE_ACK'
+  | 'DRAW_FROM_BONEYARD_ACK'
   | 'GAME_STATE'
   | 'ERROR';
 

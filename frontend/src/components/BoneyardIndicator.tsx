@@ -2,17 +2,39 @@ import { BoneyardIcon } from './BoneyardIcon';
 
 interface BoneyardIndicatorProps {
   count: number;
+  disabled: boolean;
+  onDraw: () => void;
 }
 
-export function BoneyardIndicator({ count }: BoneyardIndicatorProps) {
+export function BoneyardIndicator({
+  count,
+  disabled,
+  onDraw,
+}: BoneyardIndicatorProps) {
   return (
-    <div
-      className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-600 bg-slate-800 px-3 py-2"
-      title="Peças no monte"
-      aria-label={`Peças no monte: ${count}`}
+    <button
+      type="button"
+      onClick={onDraw}
+      disabled={disabled}
+      className={[
+        'flex shrink-0 items-center gap-2 rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 transition',
+        disabled
+          ? 'cursor-not-allowed opacity-50'
+          : 'cursor-pointer hover:border-slate-500 hover:bg-slate-700',
+      ].join(' ')}
+      title={
+        disabled
+          ? count === 0
+            ? 'Monte vazio'
+            : 'Comprar do monte (sua vez)'
+          : 'Comprar uma peça do monte'
+      }
+      aria-label={`Comprar do monte. Peças restantes: ${count}`}
     >
       <BoneyardIcon className="h-10 w-10" />
-      <span className="min-w-[2ch] text-2xl font-bold tabular-nums text-white">{count}</span>
-    </div>
+      <span className="min-w-[2ch] text-2xl font-bold tabular-nums text-white">
+        {count}
+      </span>
+    </button>
   );
 }

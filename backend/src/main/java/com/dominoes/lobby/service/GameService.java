@@ -8,6 +8,7 @@ import com.dominoes.lobby.dto.TablePieceDto;
 import com.dominoes.lobby.entity.Lobby;
 import com.dominoes.lobby.entity.TablePiece;
 import com.dominoes.lobby.entity.User;
+import com.dominoes.lobby.exception.BoneyardEmptyException;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
 import com.dominoes.lobby.exception.NotYourTurnException;
@@ -120,6 +121,32 @@ public class GameService {
 
         List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
         advanceTurn(lobby, users);
+        lobbyRepository.save(lobby);
+
+        return toGameState(lobby, userId);
+    }
+
+    @Transactional
+    public synchronized GameStateDto drawFromBoneyard(UUID userId) {
+        Lobby lobby = getLobby();
+        if (!lobby.isInProgress()) {
+            throw new GameNotInProgressException();
+        }
+        if (!userId.equals(lobby.getCurrentPlayerId())) {
+            throw new NotYourTurnException();
+        }
+
+        List<PieceEnum> boneyard = lobby.getBoneyard();
+        if (boneyard.isEmpty()) {
+            throw new BoneyardEmptyException();
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Jogador não encontrado."));
+
+        PieceEnum drawn = boneyard.remove(random.nextInt(boneyard.size()));
+        user.getHand().add(drawn);
+        userRepository.save(user);
         lobbyRepository.save(lobby);
 
         return toGameState(lobby, userId);
