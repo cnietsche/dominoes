@@ -38,7 +38,12 @@ function App() {
               onEndGame={endGame}
             />
           </div>
-          <LobbyGrid users={users} myUserId={myUserId} />
+          <LobbyGrid
+            users={users}
+            myUserId={myUserId}
+            inProgress={inProgress}
+            boneyardCount={boneyardCount}
+          />
         </div>
       </header>
 
@@ -60,7 +65,6 @@ function App() {
         ) : (
           <GameArea
             inProgress={inProgress}
-            boneyardCount={boneyardCount}
             userCount={users.length}
             busy={busy}
             error={error}

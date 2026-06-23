@@ -66,8 +66,12 @@ public class LobbyService {
     }
 
     private LobbyStateDto toLobbyState(Lobby lobby) {
-        List<UserDto> users = userRepository.findByLobbyOrderByNicknameAsc(lobby).stream()
-                .map(user -> new UserDto(user.getId(), user.getNickname()))
+        List<UserDto> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby).stream()
+                .map(user -> new UserDto(
+                        user.getId(),
+                        user.getNickname(),
+                        lobby.isInProgress() ? user.getHand().size() : null
+                ))
                 .toList();
         return new LobbyStateDto(lobby.getId(), lobby.getSize(), users);
     }

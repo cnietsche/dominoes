@@ -11,5 +11,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     long countByLobby(Lobby lobby);
 
-    List<User> findByLobbyOrderByNicknameAsc(Lobby lobby);
+    List<User> findByLobbyOrderByJoinedAtAsc(Lobby lobby);
 }

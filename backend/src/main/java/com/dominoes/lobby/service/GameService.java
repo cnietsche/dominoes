@@ -34,7 +34,7 @@ public class GameService {
             throw new GameAlreadyInProgressException();
         }
 
-        List<User> users = userRepository.findByLobbyOrderByNicknameAsc(lobby);
+        List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
         if (users.isEmpty()) {
             throw new IllegalStateException("Não há jogadores no lobby.");
         }
@@ -75,7 +75,7 @@ public class GameService {
         }
 
         List<PieceEnum> allPieces = new ArrayList<>(lobby.getBoneyard());
-        List<User> users = userRepository.findByLobbyOrderByNicknameAsc(lobby);
+        List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
         for (User user : users) {
             allPieces.addAll(user.getHand());
             user.setHand(new ArrayList<>());

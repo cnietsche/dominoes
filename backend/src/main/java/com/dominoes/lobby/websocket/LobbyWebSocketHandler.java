@@ -108,6 +108,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         try {
             gameService.startGame();
             sendToSession(session, OutgoingMessage.startGameAck());
+            broadcastLobbyState();
             broadcastGameState();
             log.info("Game started by session {}", sessionId);
         } catch (GameAlreadyInProgressException ex) {
@@ -124,6 +125,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         try {
             gameService.finishGame();
             sendToSession(session, OutgoingMessage.endGameAck());
+            broadcastLobbyState();
             broadcastGameState();
             log.info("Game ended by session {}", sessionId);
         } catch (GameNotInProgressException ex) {

@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +33,9 @@ public class User {
     @Column(nullable = false)
     private String nickname;
 
+    @Column(nullable = false)
+    private Instant joinedAt;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lobby_id", nullable = false)
     private Lobby lobby;
@@ -46,5 +50,6 @@ public class User {
         this.id = UUID.randomUUID();
         this.nickname = nickname;
         this.lobby = lobby;
+        this.joinedAt = Instant.now();
     }
 }

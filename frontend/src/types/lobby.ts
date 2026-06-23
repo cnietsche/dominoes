@@ -1,6 +1,7 @@
 export interface LobbyUser {
   id: string;
   nickname: string;
+  handCount?: number | null;
 }
 
 export interface LobbyStatePayload {
