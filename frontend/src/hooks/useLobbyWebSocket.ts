@@ -5,6 +5,7 @@ import type {
   LobbyStatePayload,
   LobbyUser,
   OutgoingMessage,
+  TableSide,
 } from '../types/lobby';
 
 const WS_URL = `ws://${window.location.host}/ws/lobby`;
@@ -30,22 +31,20 @@ function parseGameState(payload: Record<string, unknown>): GameStatePayload {
   const hand = Array.isArray(payload.hand)
     ? (payload.hand as string[])
     : [];
+  const table = Array.isArray(payload.table)
+    ? (payload.table as string[])
+    : [];
   const currentPlayerRaw = payload.currentPlayer;
   const currentPlayer =
     typeof currentPlayerRaw === 'string' && currentPlayerRaw.length > 0
       ? currentPlayerRaw
-      : null;
-  const openingPieceRaw = payload.openingPiece;
-  const openingPiece =
-    typeof openingPieceRaw === 'string' && openingPieceRaw.length > 0
-      ? openingPieceRaw
       : null;
   return {
     inProgress: Boolean(payload.inProgress),
     boneyardCount: Number(payload.boneyardCount ?? 0),
     hand,
     currentPlayer,
-    openingPiece,
+    table,
   };
 }
 
@@ -60,6 +59,7 @@ export function useLobbyWebSocket() {
   const [inProgress, setInProgress] = useState(false);
   const [boneyardCount, setBoneyardCount] = useState(0);
   const [hand, setHand] = useState<string[]>([]);
+  const [table, setTable] = useState<string[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -80,6 +80,7 @@ export function useLobbyWebSocket() {
     setInProgress(state.inProgress);
     setBoneyardCount(state.boneyardCount);
     setHand(state.hand);
+    setTable(state.table);
     setCurrentPlayerId(state.currentPlayer);
   }, []);
 
@@ -174,6 +175,7 @@ export function useLobbyWebSocket() {
         setInProgress(false);
         setBoneyardCount(0);
         setHand([]);
+        setTable([]);
         setCurrentPlayerId(null);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
@@ -224,6 +226,17 @@ export function useLobbyWebSocket() {
     setError(null);
   }, [sendMessage]);
 
+  const playPiece = useCallback(
+    async (piece: string, side: TableSide) => {
+      await sendMessage(
+        { type: 'PLAY_PIECE', piece, side },
+        ['PLAY_PIECE_ACK', 'ERROR'],
+      );
+      setError(null);
+    },
+    [sendMessage],
+  );
+
   useEffect(() => {
     const handlePageHide = () => {
       if (joinedRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -252,10 +265,12 @@ export function useLobbyWebSocket() {
     inProgress,
     boneyardCount,
     hand,
+    table,
     currentPlayerId,
     join,
     leave,
     startGame,
     endGame,
+    playPiece,
   };
 }

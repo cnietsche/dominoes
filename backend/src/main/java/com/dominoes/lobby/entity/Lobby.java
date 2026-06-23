@@ -37,14 +37,17 @@ public class Lobby {
     @Column(name = "current_player_id")
     private UUID currentPlayerId;
 
-    @Column(name = "opening_piece")
-    private PieceEnum openingPiece;
-
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "lobby_boneyard", joinColumns = @JoinColumn(name = "lobby_id"))
     @Column(name = "piece", nullable = false)
     @OrderColumn(name = "piece_order")
     private List<PieceEnum> boneyard = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "lobby_table", joinColumns = @JoinColumn(name = "lobby_id"))
+    @Column(name = "piece", nullable = false)
+    @OrderColumn(name = "piece_order")
+    private List<PieceEnum> table = new ArrayList<>();
 
     public Lobby(Integer size) {
         this.id = UUID.randomUUID();

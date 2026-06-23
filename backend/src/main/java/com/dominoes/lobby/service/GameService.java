@@ -1,11 +1,14 @@
 package com.dominoes.lobby.service;
 
 import com.dominoes.lobby.domain.PieceEnum;
+import com.dominoes.lobby.domain.TableSide;
 import com.dominoes.lobby.dto.GameStateDto;
 import com.dominoes.lobby.entity.Lobby;
 import com.dominoes.lobby.entity.User;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
+import com.dominoes.lobby.exception.NotYourTurnException;
+import com.dominoes.lobby.exception.PieceNotInHandException;
 import com.dominoes.lobby.repository.LobbyRepository;
 import com.dominoes.lobby.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -55,20 +58,59 @@ public class GameService {
         }
 
         lobby.setBoneyard(new ArrayList<>(deck));
+        lobby.setTable(new ArrayList<>());
         lobby.setInProgress(true);
 
-        Optional<User> doubleOwner = determineFirstPlayer(users);
-        if (doubleOwner.isPresent()) {
-            lobby.setCurrentPlayerId(doubleOwner.get().getId());
-            lobby.setOpeningPiece(null);
+        Optional<DoubleOpening> doubleOpening = findDoubleOpening(users);
+        if (doubleOpening.isPresent()) {
+            DoubleOpening opening = doubleOpening.get();
+            opening.user().getHand().remove(opening.piece());
+            userRepository.save(opening.user());
+            lobby.getTable().add(opening.piece());
+            lobby.setCurrentPlayerId(opening.user().getId());
+            advanceTurn(lobby, users);
         } else {
-            User startingPlayer = resolveOpeningWithoutDouble(lobby, users);
-            lobby.setCurrentPlayerId(startingPlayer.getId());
+            PieceEnum openingPiece = drawFromBoneyard(lobby);
+            lobby.getTable().add(openingPiece);
+            lobby.setCurrentPlayerId(users.get(random.nextInt(users.size())).getId());
         }
 
         lobbyRepository.save(lobby);
 
         return toGameState(lobby);
+    }
+
+    @Transactional
+    public synchronized GameStateDto playPiece(UUID userId, PieceEnum piece, TableSide side) {
+        Lobby lobby = getLobby();
+        if (!lobby.isInProgress()) {
+            throw new GameNotInProgressException();
+        }
+        if (!userId.equals(lobby.getCurrentPlayerId())) {
+            throw new NotYourTurnException();
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Jogador não encontrado."));
+
+        List<PieceEnum> hand = user.getHand();
+        if (!hand.contains(piece)) {
+            throw new PieceNotInHandException();
+        }
+
+        hand.remove(piece);
+        if (side == TableSide.LEFT) {
+            lobby.getTable().add(0, piece);
+        } else {
+            lobby.getTable().add(piece);
+        }
+        userRepository.save(user);
+
+        List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
+        advanceTurn(lobby, users);
+        lobbyRepository.save(lobby);
+
+        return toGameState(lobby, userId);
     }
 
     @Transactional
@@ -88,9 +130,7 @@ public class GameService {
         }
 
         List<PieceEnum> allPieces = new ArrayList<>(lobby.getBoneyard());
-        if (lobby.getOpeningPiece() != null) {
-            allPieces.add(lobby.getOpeningPiece());
-        }
+        allPieces.addAll(lobby.getTable());
         List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
         for (User user : users) {
             allPieces.addAll(user.getHand());
@@ -99,9 +139,9 @@ public class GameService {
         }
 
         lobby.setBoneyard(allPieces);
+        lobby.getTable().clear();
         lobby.setInProgress(false);
         lobby.setCurrentPlayerId(null);
-        lobby.setOpeningPiece(null);
         lobbyRepository.save(lobby);
     }
 
@@ -114,28 +154,44 @@ public class GameService {
     public GameStateDto getGameStateForUser(UUID userId) {
         return lobbyRepository.findFirstByOrderByIdAsc()
                 .map(lobby -> toGameState(lobby, userId))
-                .orElse(new GameStateDto(false, 0, List.of(), null, null));
+                .orElse(new GameStateDto(false, 0, List.of(), null, List.of()));
     }
 
-    private Optional<User> determineFirstPlayer(List<User> users) {
+    private Optional<DoubleOpening> findDoubleOpening(List<User> users) {
         for (PieceEnum doublePiece : PieceEnum.DOUBLES_BY_PRIORITY) {
             for (User user : users) {
                 if (user.getHand().contains(doublePiece)) {
-                    return Optional.of(user);
+                    return Optional.of(new DoubleOpening(user, doublePiece));
                 }
             }
         }
         return Optional.empty();
     }
 
-    private User resolveOpeningWithoutDouble(Lobby lobby, List<User> users) {
+    private PieceEnum drawFromBoneyard(Lobby lobby) {
         List<PieceEnum> boneyard = lobby.getBoneyard();
         int pieceIndex = random.nextInt(boneyard.size());
-        PieceEnum openingPiece = boneyard.remove(pieceIndex);
-        lobby.setOpeningPiece(openingPiece);
+        return boneyard.remove(pieceIndex);
+    }
 
-        int playerIndex = random.nextInt(users.size());
-        return users.get(playerIndex);
+    private void advanceTurn(Lobby lobby, List<User> users) {
+        if (users.isEmpty()) {
+            return;
+        }
+        UUID current = lobby.getCurrentPlayerId();
+        int currentIndex = -1;
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).getId().equals(current)) {
+                currentIndex = i;
+                break;
+            }
+        }
+        if (currentIndex == -1) {
+            lobby.setCurrentPlayerId(users.getFirst().getId());
+        } else {
+            int nextIndex = (currentIndex + 1) % users.size();
+            lobby.setCurrentPlayerId(users.get(nextIndex).getId());
+        }
     }
 
     private Lobby getLobby() {
@@ -154,15 +210,13 @@ public class GameService {
                     .map(user -> user.getHand().stream().map(PieceEnum::getCode).toList())
                     .orElse(List.of());
         }
-        String openingPiece = lobby.getOpeningPiece() != null
-                ? lobby.getOpeningPiece().getCode()
-                : null;
+        List<String> table = lobby.getTable().stream().map(PieceEnum::getCode).toList();
         return new GameStateDto(
                 lobby.isInProgress(),
                 lobby.getBoneyard().size(),
                 hand,
                 lobby.getCurrentPlayerId(),
-                openingPiece
+                table
         );
     }
 }

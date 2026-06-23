@@ -1,11 +1,15 @@
 package com.dominoes.lobby.websocket;
 
+import com.dominoes.lobby.domain.PieceEnum;
+import com.dominoes.lobby.domain.TableSide;
 import com.dominoes.lobby.dto.LobbyStateDto;
 import com.dominoes.lobby.entity.User;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
 import com.dominoes.lobby.exception.LobbyFullException;
+import com.dominoes.lobby.exception.NotYourTurnException;
+import com.dominoes.lobby.exception.PieceNotInHandException;
 import com.dominoes.lobby.service.GameService;
 import com.dominoes.lobby.service.LobbyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +51,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 case "LEAVE" -> handleLeave(session, sessionId);
                 case "START_GAME" -> handleStartGame(session, sessionId);
                 case "END_GAME" -> handleEndGame(session, sessionId);
+                case "PLAY_PIECE" -> handlePlayPiece(session, sessionId, incoming.piece(), incoming.side());
                 default -> sendToSession(session, OutgoingMessage.error("Tipo de mensagem desconhecido."));
             }
         }
@@ -129,6 +134,37 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             broadcastGameState();
             log.info("Game ended by session {}", sessionId);
         } catch (GameNotInProgressException ex) {
+            sendToSession(session, OutgoingMessage.error(ex.getMessage()));
+        }
+    }
+
+    private void handlePlayPiece(WebSocketSession session, String sessionId, String pieceCode, String sideCode)
+            throws IOException {
+        UUID userId = sessionRegistry.findUserId(sessionId).orElse(null);
+        if (userId == null) {
+            sendToSession(session, OutgoingMessage.error("Você precisa estar no lobby para jogar."));
+            return;
+        }
+        if (pieceCode == null || pieceCode.isBlank()) {
+            sendToSession(session, OutgoingMessage.error("Peça é obrigatória."));
+            return;
+        }
+        if (sideCode == null || sideCode.isBlank()) {
+            sendToSession(session, OutgoingMessage.error("Lado da mesa é obrigatório."));
+            return;
+        }
+
+        try {
+            PieceEnum piece = PieceEnum.fromCode(pieceCode);
+            TableSide side = TableSide.valueOf(sideCode);
+            gameService.playPiece(userId, piece, side);
+            sendToSession(session, OutgoingMessage.playPieceAck());
+            broadcastLobbyState();
+            broadcastGameState();
+            log.info("User {} played piece {} on {}", userId, pieceCode, sideCode);
+        } catch (IllegalArgumentException ex) {
+            sendToSession(session, OutgoingMessage.error("Lado da mesa inválido."));
+        } catch (NotYourTurnException | PieceNotInHandException | GameNotInProgressException ex) {
             sendToSession(session, OutgoingMessage.error(ex.getMessage()));
         }
     }

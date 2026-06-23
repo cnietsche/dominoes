@@ -25,7 +25,7 @@ public record OutgoingMessage(
         payload.put("boneyardCount", state.boneyardCount());
         payload.put("hand", state.hand());
         payload.put("currentPlayer", state.currentPlayerId() != null ? state.currentPlayerId().toString() : "");
-        payload.put("openingPiece", state.openingPiece() != null ? state.openingPiece() : "");
+        payload.put("table", state.table());
         return new OutgoingMessage("GAME_STATE", payload);
     }
 
@@ -35,6 +35,10 @@ public record OutgoingMessage(
 
     public static OutgoingMessage startGameAck() {
         return new OutgoingMessage("START_GAME_ACK", Map.of());
+    }
+
+    public static OutgoingMessage playPieceAck() {
+        return new OutgoingMessage("PLAY_PIECE_ACK", Map.of());
     }
 
     public static OutgoingMessage endGameAck() {

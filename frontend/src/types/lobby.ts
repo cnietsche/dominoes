@@ -10,19 +10,28 @@ export interface LobbyStatePayload {
   users: LobbyUser[];
 }
 
+export type TableSide = 'LEFT' | 'RIGHT';
+
 export interface GameStatePayload {
   inProgress: boolean;
   boneyardCount: number;
   hand: string[];
   currentPlayer: string | null;
-  openingPiece?: string | null;
+  table: string[];
 }
 
-export type OutgoingMessageType = 'JOIN' | 'LEAVE' | 'START_GAME' | 'END_GAME';
+export type OutgoingMessageType =
+  | 'JOIN'
+  | 'LEAVE'
+  | 'START_GAME'
+  | 'END_GAME'
+  | 'PLAY_PIECE';
 
 export interface OutgoingMessage {
   type: OutgoingMessageType;
   nickname?: string;
+  piece?: string;
+  side?: TableSide;
 }
 
 export type IncomingMessageType =
@@ -30,6 +39,7 @@ export type IncomingMessageType =
   | 'JOIN_ACK'
   | 'START_GAME_ACK'
   | 'END_GAME_ACK'
+  | 'PLAY_PIECE_ACK'
   | 'GAME_STATE'
   | 'ERROR';
 

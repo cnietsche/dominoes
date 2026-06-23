@@ -1,9 +1,11 @@
+import { useCallback, useState } from 'react';
 import { NicknameForm } from './components/NicknameForm';
 import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyStatus } from './components/LobbyStatus';
 import { GameArea } from './components/GameArea';
 import { PlayerHand } from './components/PlayerHand';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
+import type { TableSide } from './types/lobby';
 
 function App() {
   const {
@@ -17,11 +19,42 @@ function App() {
     inProgress,
     boneyardCount,
     hand,
+    table,
     currentPlayerId,
     join,
     startGame,
     endGame,
+    playPiece,
   } = useLobbyWebSocket();
+
+  const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
+
+  const isMyTurn = myUserId !== null && myUserId === currentPlayerId;
+
+  const handleSelectPiece = useCallback(
+    (piece: string) => {
+      if (!isMyTurn) {
+        return;
+      }
+      setSelectedPiece((current) => (current === piece ? null : piece));
+    },
+    [isMyTurn],
+  );
+
+  const handlePlay = useCallback(
+    async (side: TableSide) => {
+      if (!selectedPiece || !isMyTurn) {
+        return;
+      }
+      try {
+        await playPiece(selectedPiece, side);
+        setSelectedPiece(null);
+      } catch {
+        // error handled in hook
+      }
+    },
+    [selectedPiece, isMyTurn, playPiece],
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -67,17 +100,27 @@ function App() {
         ) : (
           <GameArea
             inProgress={inProgress}
-            userCount={users.length}
+            table={table}
+            myUserId={myUserId}
+            currentPlayerId={currentPlayerId}
+            selectedPiece={selectedPiece}
             busy={busy}
+            userCount={users.length}
             error={error}
             onStart={startGame}
+            onPlay={handlePlay}
           />
         )}
       </main>
 
       {joined && inProgress && (
         <footer className="mt-auto">
-          <PlayerHand pieces={hand} />
+          <PlayerHand
+            pieces={hand}
+            isMyTurn={isMyTurn}
+            selectedPiece={selectedPiece}
+            onSelectPiece={handleSelectPiece}
+          />
         </footer>
       )}
     </div>

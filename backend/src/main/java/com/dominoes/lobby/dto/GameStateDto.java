@@ -8,6 +8,6 @@ public record GameStateDto(
         int boneyardCount,
         List<String> hand,
         UUID currentPlayerId,
-        String openingPiece
+        List<String> table
 ) {
 }
