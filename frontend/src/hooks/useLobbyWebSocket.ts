@@ -30,10 +30,22 @@ function parseGameState(payload: Record<string, unknown>): GameStatePayload {
   const hand = Array.isArray(payload.hand)
     ? (payload.hand as string[])
     : [];
+  const currentPlayerRaw = payload.currentPlayer;
+  const currentPlayer =
+    typeof currentPlayerRaw === 'string' && currentPlayerRaw.length > 0
+      ? currentPlayerRaw
+      : null;
+  const openingPieceRaw = payload.openingPiece;
+  const openingPiece =
+    typeof openingPieceRaw === 'string' && openingPieceRaw.length > 0
+      ? openingPieceRaw
+      : null;
   return {
     inProgress: Boolean(payload.inProgress),
     boneyardCount: Number(payload.boneyardCount ?? 0),
     hand,
+    currentPlayer,
+    openingPiece,
   };
 }
 
@@ -48,6 +60,7 @@ export function useLobbyWebSocket() {
   const [inProgress, setInProgress] = useState(false);
   const [boneyardCount, setBoneyardCount] = useState(0);
   const [hand, setHand] = useState<string[]>([]);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -67,6 +80,7 @@ export function useLobbyWebSocket() {
     setInProgress(state.inProgress);
     setBoneyardCount(state.boneyardCount);
     setHand(state.hand);
+    setCurrentPlayerId(state.currentPlayer);
   }, []);
 
   const handleIncomingMessage = useCallback(
@@ -160,6 +174,7 @@ export function useLobbyWebSocket() {
         setInProgress(false);
         setBoneyardCount(0);
         setHand([]);
+        setCurrentPlayerId(null);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
       };
@@ -237,6 +252,7 @@ export function useLobbyWebSocket() {
     inProgress,
     boneyardCount,
     hand,
+    currentPlayerId,
     join,
     leave,
     startGame,

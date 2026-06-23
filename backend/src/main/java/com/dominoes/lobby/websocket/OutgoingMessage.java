@@ -24,6 +24,8 @@ public record OutgoingMessage(
         payload.put("inProgress", state.inProgress());
         payload.put("boneyardCount", state.boneyardCount());
         payload.put("hand", state.hand());
+        payload.put("currentPlayer", state.currentPlayerId() != null ? state.currentPlayerId().toString() : "");
+        payload.put("openingPiece", state.openingPiece() != null ? state.openingPiece() : "");
         return new OutgoingMessage("GAME_STATE", payload);
     }
 

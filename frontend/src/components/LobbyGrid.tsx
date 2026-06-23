@@ -4,11 +4,18 @@ import { BoneyardIndicator } from './BoneyardIndicator';
 interface LobbyGridProps {
   users: { id: string; nickname: string; handCount?: number | null }[];
   myUserId: string | null;
+  currentPlayerId: string | null;
   inProgress: boolean;
   boneyardCount: number;
 }
 
-export function LobbyGrid({ users, myUserId, inProgress, boneyardCount }: LobbyGridProps) {
+export function LobbyGrid({
+  users,
+  myUserId,
+  currentPlayerId,
+  inProgress,
+  boneyardCount,
+}: LobbyGridProps) {
   return (
     <div className="flex items-center gap-4">
       <div className="min-w-0 flex-1">
@@ -21,6 +28,7 @@ export function LobbyGrid({ users, myUserId, inProgress, boneyardCount }: LobbyG
                 key={user.id}
                 nickname={user.nickname}
                 isCurrentUser={user.id === myUserId}
+                isCurrentTurn={inProgress && user.id === currentPlayerId}
                 inProgress={inProgress}
                 handCount={user.handCount}
               />

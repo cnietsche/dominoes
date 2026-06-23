@@ -1,18 +1,27 @@
 interface UserCardProps {
   nickname: string;
   isCurrentUser: boolean;
+  isCurrentTurn: boolean;
   inProgress: boolean;
   handCount?: number | null;
 }
 
-export function UserCard({ nickname, isCurrentUser, inProgress, handCount }: UserCardProps) {
+export function UserCard({
+  nickname,
+  isCurrentUser,
+  isCurrentTurn,
+  inProgress,
+  handCount,
+}: UserCardProps) {
+  const borderClass = isCurrentTurn
+    ? 'border-orange-400 ring-2 ring-orange-500'
+    : isCurrentUser
+      ? 'border-blue-400 ring-2 ring-blue-500'
+      : 'border-slate-600';
+
   return (
     <div
-      className={`min-w-[140px] rounded-xl border bg-slate-800 px-4 py-3 shadow-md ${
-        isCurrentUser
-          ? 'border-blue-400 ring-2 ring-blue-500'
-          : 'border-slate-600'
-      }`}
+      className={`min-w-[140px] rounded-xl border bg-slate-800 px-4 py-3 shadow-md ${borderClass}`}
     >
       <p className="text-xs uppercase tracking-wide text-slate-400">
         Jogador

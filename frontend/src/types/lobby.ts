@@ -14,6 +14,8 @@ export interface GameStatePayload {
   inProgress: boolean;
   boneyardCount: number;
   hand: string[];
+  currentPlayer: string | null;
+  openingPiece?: string | null;
 }
 
 export type OutgoingMessageType = 'JOIN' | 'LEAVE' | 'START_GAME' | 'END_GAME';

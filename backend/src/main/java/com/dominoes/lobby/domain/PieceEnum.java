@@ -3,6 +3,7 @@ package com.dominoes.lobby.domain;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,6 +37,10 @@ public enum PieceEnum {
     FOUR_SIX("4-6"),
     FIVE_SIX("5-6"),
     SIX_SIX("6-6");
+
+    public static final List<PieceEnum> DOUBLES_BY_PRIORITY = List.of(
+            SIX_SIX, FIVE_FIVE, FOUR_FOUR, THREE_THREE, TWO_TWO, ONE_ONE, ZERO_ZERO
+    );
 
     private static final Map<String, PieceEnum> BY_CODE = Arrays.stream(values())
             .collect(Collectors.toMap(PieceEnum::getCode, Function.identity()));

@@ -34,6 +34,12 @@ public class Lobby {
     @Column(nullable = false)
     private boolean inProgress = false;
 
+    @Column(name = "current_player_id")
+    private UUID currentPlayerId;
+
+    @Column(name = "opening_piece")
+    private PieceEnum openingPiece;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "lobby_boneyard", joinColumns = @JoinColumn(name = "lobby_id"))
     @Column(name = "piece", nullable = false)

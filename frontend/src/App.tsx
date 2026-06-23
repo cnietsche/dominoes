@@ -17,6 +17,7 @@ function App() {
     inProgress,
     boneyardCount,
     hand,
+    currentPlayerId,
     join,
     startGame,
     endGame,
@@ -41,6 +42,7 @@ function App() {
           <LobbyGrid
             users={users}
             myUserId={myUserId}
+            currentPlayerId={currentPlayerId}
             inProgress={inProgress}
             boneyardCount={boneyardCount}
           />
