@@ -27,6 +27,7 @@ public record OutgoingMessage(
         payload.put("hand", state.hand());
         payload.put("currentPlayer", state.currentPlayerId() != null ? state.currentPlayerId().toString() : "");
         payload.put("table", state.table().stream().map(OutgoingMessage::tablePiece).toList());
+        payload.put("drawnThisTurn", state.drawnThisTurn());
         return new OutgoingMessage("GAME_STATE", payload);
     }
 

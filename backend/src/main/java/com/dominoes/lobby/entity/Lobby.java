@@ -37,6 +37,9 @@ public class Lobby {
     @Column(name = "current_player_id")
     private UUID currentPlayerId;
 
+    @Column(nullable = false)
+    private boolean drawnThisTurn = false;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "lobby_boneyard", joinColumns = @JoinColumn(name = "lobby_id"))
     @Column(name = "piece", nullable = false)

@@ -73,6 +73,7 @@ function parseGameState(payload: Record<string, unknown>): GameStatePayload {
     hand,
     currentPlayer,
     table,
+    drawnThisTurn: Boolean(payload.drawnThisTurn),
   };
 }
 
@@ -89,6 +90,7 @@ export function useLobbyWebSocket() {
   const [hand, setHand] = useState<string[]>([]);
   const [table, setTable] = useState<TablePiece[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const [drawnThisTurn, setDrawnThisTurn] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -110,6 +112,7 @@ export function useLobbyWebSocket() {
     setHand(state.hand);
     setTable(state.table);
     setCurrentPlayerId(state.currentPlayer);
+    setDrawnThisTurn(state.drawnThisTurn);
   }, []);
 
   const handleIncomingMessage = useCallback(
@@ -205,6 +208,7 @@ export function useLobbyWebSocket() {
         setHand([]);
         setTable([]);
         setCurrentPlayerId(null);
+        setDrawnThisTurn(false);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
       };
@@ -307,6 +311,7 @@ export function useLobbyWebSocket() {
     hand,
     table,
     currentPlayerId,
+    drawnThisTurn,
     join,
     leave,
     startGame,

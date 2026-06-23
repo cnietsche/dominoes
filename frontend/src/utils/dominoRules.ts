@@ -57,3 +57,24 @@ export function canPlayPieceOnSide(
   const requiredPip = side === 'LEFT' ? ends.left : ends.right;
   return pieceMatchesPip(pieceCode, requiredPip);
 }
+
+export function canPlayPiece(
+  pieceCode: string,
+  table: TablePiece[],
+): boolean {
+  const ends = getExposedEnds(table);
+  if (!ends) {
+    return false;
+  }
+  return (
+    pieceMatchesPip(pieceCode, ends.left) ||
+    pieceMatchesPip(pieceCode, ends.right)
+  );
+}
+
+export function hasPlayablePiece(
+  pieces: string[],
+  table: TablePiece[],
+): boolean {
+  return pieces.some((piece) => canPlayPiece(piece, table));
+}

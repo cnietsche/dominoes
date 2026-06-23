@@ -8,6 +8,7 @@ public record GameStateDto(
         int boneyardCount,
         List<String> hand,
         UUID currentPlayerId,
-        List<TablePieceDto> table
+        List<TablePieceDto> table,
+        boolean drawnThisTurn
 ) {
 }

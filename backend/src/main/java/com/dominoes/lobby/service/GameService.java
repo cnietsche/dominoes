@@ -8,9 +8,11 @@ import com.dominoes.lobby.dto.TablePieceDto;
 import com.dominoes.lobby.entity.Lobby;
 import com.dominoes.lobby.entity.TablePiece;
 import com.dominoes.lobby.entity.User;
+import com.dominoes.lobby.exception.AlreadyDrawnThisTurnException;
 import com.dominoes.lobby.exception.BoneyardEmptyException;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
+import com.dominoes.lobby.exception.HasPlayablePieceException;
 import com.dominoes.lobby.exception.NotYourTurnException;
 import com.dominoes.lobby.exception.PieceDoesNotMatchException;
 import com.dominoes.lobby.exception.PieceNotInHandException;
@@ -64,6 +66,7 @@ public class GameService {
 
         lobby.setBoneyard(new ArrayList<>(deck));
         lobby.setTable(new ArrayList<>());
+        lobby.setDrawnThisTurn(false);
         lobby.setInProgress(true);
 
         Optional<DoubleOpening> doubleOpening = findDoubleOpening(users);
@@ -75,9 +78,10 @@ public class GameService {
             lobby.setCurrentPlayerId(opening.user().getId());
             advanceTurn(lobby, users);
         } else {
-            PieceEnum openingPiece = drawFromBoneyard(lobby);
+            PieceEnum openingPiece = removeRandomFromBoneyard(lobby);
             lobby.getTable().add(createOpeningPiece(openingPiece));
             lobby.setCurrentPlayerId(users.get(random.nextInt(users.size())).getId());
+            resolveCurrentPlayerTurn(lobby, users);
         }
 
         lobbyRepository.save(lobby);
@@ -135,18 +139,32 @@ public class GameService {
         if (!userId.equals(lobby.getCurrentPlayerId())) {
             throw new NotYourTurnException();
         }
+        if (lobby.isDrawnThisTurn()) {
+            throw new AlreadyDrawnThisTurnException();
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Jogador não encontrado."));
+
+        if (hasPlayablePiece(user.getHand(), lobby.getTable())) {
+            throw new HasPlayablePieceException();
+        }
 
         List<PieceEnum> boneyard = lobby.getBoneyard();
         if (boneyard.isEmpty()) {
             throw new BoneyardEmptyException();
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("Jogador não encontrado."));
-
         PieceEnum drawn = boneyard.remove(random.nextInt(boneyard.size()));
         user.getHand().add(drawn);
+        lobby.setDrawnThisTurn(true);
         userRepository.save(user);
+
+        List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
+        if (!hasPlayablePiece(user.getHand(), lobby.getTable())) {
+            advanceTurn(lobby, users);
+        }
+
         lobbyRepository.save(lobby);
 
         return toGameState(lobby, userId);
@@ -183,6 +201,7 @@ public class GameService {
         lobby.getTable().clear();
         lobby.setInProgress(false);
         lobby.setCurrentPlayerId(null);
+        lobby.setDrawnThisTurn(false);
         lobbyRepository.save(lobby);
     }
 
@@ -195,7 +214,7 @@ public class GameService {
     public GameStateDto getGameStateForUser(UUID userId) {
         return lobbyRepository.findFirstByOrderByIdAsc()
                 .map(lobby -> toGameState(lobby, userId))
-                .orElse(new GameStateDto(false, 0, List.of(), null, List.of()));
+                .orElse(new GameStateDto(false, 0, List.of(), null, List.of(), false));
     }
 
     private TablePiece createOpeningPiece(PieceEnum piece) {
@@ -241,6 +260,44 @@ public class GameService {
         throw new PieceDoesNotMatchException();
     }
 
+    private boolean hasPlayablePiece(List<PieceEnum> hand, List<TablePiece> table) {
+        if (table.isEmpty() || hand.isEmpty()) {
+            return false;
+        }
+        int leftEnd = exposedLeftValue(table.getFirst());
+        int rightEnd = exposedRightValue(table.getLast());
+        return hand.stream().anyMatch(piece -> piece.matchesPip(leftEnd) || piece.matchesPip(rightEnd));
+    }
+
+    private boolean canDrawFromBoneyard(Lobby lobby) {
+        return !lobby.isDrawnThisTurn() && !lobby.getBoneyard().isEmpty();
+    }
+
+    private void resolveCurrentPlayerTurn(Lobby lobby, List<User> users) {
+        for (int skipped = 0; skipped < users.size(); skipped++) {
+            User current = findCurrentUser(lobby, users);
+            if (current == null) {
+                return;
+            }
+            if (hasPlayablePiece(current.getHand(), lobby.getTable()) || canDrawFromBoneyard(lobby)) {
+                return;
+            }
+            moveToNextPlayer(lobby, users);
+            lobby.setDrawnThisTurn(false);
+        }
+    }
+
+    private User findCurrentUser(Lobby lobby, List<User> users) {
+        UUID currentId = lobby.getCurrentPlayerId();
+        if (currentId == null) {
+            return null;
+        }
+        return users.stream()
+                .filter(user -> user.getId().equals(currentId))
+                .findFirst()
+                .orElse(null);
+    }
+
     private int exposedLeftValue(TablePiece tablePiece) {
         return switch (tablePiece.getRotation()) {
             case VERTICAL, HORIZONTAL -> tablePiece.getPiece().leftPip();
@@ -266,13 +323,19 @@ public class GameService {
         return Optional.empty();
     }
 
-    private PieceEnum drawFromBoneyard(Lobby lobby) {
+    private PieceEnum removeRandomFromBoneyard(Lobby lobby) {
         List<PieceEnum> boneyard = lobby.getBoneyard();
         int pieceIndex = random.nextInt(boneyard.size());
         return boneyard.remove(pieceIndex);
     }
 
     private void advanceTurn(Lobby lobby, List<User> users) {
+        moveToNextPlayer(lobby, users);
+        lobby.setDrawnThisTurn(false);
+        resolveCurrentPlayerTurn(lobby, users);
+    }
+
+    private void moveToNextPlayer(Lobby lobby, List<User> users) {
         if (users.isEmpty()) {
             return;
         }
@@ -316,7 +379,8 @@ public class GameService {
                 lobby.getBoneyard().size(),
                 hand,
                 lobby.getCurrentPlayerId(),
-                table
+                table,
+                lobby.isDrawnThisTurn()
         );
     }
 }

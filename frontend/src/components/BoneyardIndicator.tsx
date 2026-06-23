@@ -26,7 +26,7 @@ export function BoneyardIndicator({
         disabled
           ? count === 0
             ? 'Monte vazio'
-            : 'Comprar do monte (sua vez)'
+            : 'Indisponível (jogue, compre só sem peças jogáveis ou já comprou)'
           : 'Comprar uma peça do monte'
       }
       aria-label={`Comprar do monte. Peças restantes: ${count}`}

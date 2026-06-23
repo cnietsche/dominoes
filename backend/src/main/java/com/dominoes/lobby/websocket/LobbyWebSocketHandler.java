@@ -4,10 +4,12 @@ import com.dominoes.lobby.domain.PieceEnum;
 import com.dominoes.lobby.domain.TableSide;
 import com.dominoes.lobby.dto.LobbyStateDto;
 import com.dominoes.lobby.entity.User;
+import com.dominoes.lobby.exception.AlreadyDrawnThisTurnException;
 import com.dominoes.lobby.exception.BoneyardEmptyException;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
+import com.dominoes.lobby.exception.HasPlayablePieceException;
 import com.dominoes.lobby.exception.LobbyFullException;
 import com.dominoes.lobby.exception.NotYourTurnException;
 import com.dominoes.lobby.exception.PieceDoesNotMatchException;
@@ -186,7 +188,8 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             broadcastLobbyState();
             broadcastGameState();
             log.info("User {} drew from boneyard", userId);
-        } catch (NotYourTurnException | BoneyardEmptyException | GameNotInProgressException ex) {
+        } catch (NotYourTurnException | BoneyardEmptyException | AlreadyDrawnThisTurnException
+                | HasPlayablePieceException | GameNotInProgressException ex) {
             sendToSession(session, OutgoingMessage.error(ex.getMessage()));
         }
     }

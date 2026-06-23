@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NicknameForm } from './components/NicknameForm';
 import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyStatus } from './components/LobbyStatus';
@@ -6,7 +6,7 @@ import { GameArea } from './components/GameArea';
 import { PlayerHand } from './components/PlayerHand';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
 import type { TableSide } from './types/lobby';
-import { canPlayPieceOnSide } from './utils/dominoRules';
+import { canPlayPiece, canPlayPieceOnSide } from './utils/dominoRules';
 
 const FLASH_DURATION_MS = 500;
 
@@ -24,6 +24,7 @@ function App() {
     hand,
     table,
     currentPlayerId,
+    drawnThisTurn,
     join,
     startGame,
     endGame,
@@ -41,6 +42,16 @@ function App() {
 
   const isMyTurn = myUserId !== null && myUserId === currentPlayerId;
 
+  useEffect(() => {
+    if (
+      selectedPiece &&
+      isMyTurn &&
+      !canPlayPiece(selectedPiece, table)
+    ) {
+      setSelectedPiece(null);
+    }
+  }, [selectedPiece, isMyTurn, table]);
+
   const flashInvalid = useCallback((side: TableSide) => {
     if (flashTimeoutRef.current) {
       clearTimeout(flashTimeoutRef.current);
@@ -54,12 +65,12 @@ function App() {
 
   const handleSelectPiece = useCallback(
     (piece: string) => {
-      if (!isMyTurn) {
+      if (!isMyTurn || !canPlayPiece(piece, table)) {
         return;
       }
       setSelectedPiece((current) => (current === piece ? null : piece));
     },
-    [isMyTurn],
+    [isMyTurn, table],
   );
 
   const handlePlay = useCallback(
@@ -104,6 +115,9 @@ function App() {
             currentPlayerId={currentPlayerId}
             inProgress={inProgress}
             boneyardCount={boneyardCount}
+            hand={hand}
+            table={table}
+            drawnThisTurn={drawnThisTurn}
             busy={busy}
             onDrawFromBoneyard={drawFromBoneyard}
           />
@@ -146,6 +160,7 @@ function App() {
         <footer className="mt-auto">
           <PlayerHand
             pieces={hand}
+            table={table}
             isMyTurn={isMyTurn}
             selectedPiece={selectedPiece}
             onSelectPiece={handleSelectPiece}

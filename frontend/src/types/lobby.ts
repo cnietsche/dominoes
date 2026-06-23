@@ -23,6 +23,7 @@ export interface GameStatePayload {
   hand: string[];
   currentPlayer: string | null;
   table: TablePiecePayload[];
+  drawnThisTurn: boolean;
 }
 
 export type OutgoingMessageType =
