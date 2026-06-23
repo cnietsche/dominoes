@@ -67,4 +67,21 @@ public enum PieceEnum {
     public static PieceEnum[] fullSet() {
         return values();
     }
+
+    public boolean isDouble() {
+        String[] parts = code.split("-");
+        return parts[0].equals(parts[1]);
+    }
+
+    public int leftPip() {
+        return Integer.parseInt(code.split("-")[0]);
+    }
+
+    public int rightPip() {
+        return Integer.parseInt(code.split("-")[1]);
+    }
+
+    public boolean matchesPip(int value) {
+        return leftPip() == value || rightPip() == value;
+    }
 }

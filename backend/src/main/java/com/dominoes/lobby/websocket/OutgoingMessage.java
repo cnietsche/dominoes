@@ -2,6 +2,7 @@ package com.dominoes.lobby.websocket;
 
 import com.dominoes.lobby.dto.GameStateDto;
 import com.dominoes.lobby.dto.LobbyStateDto;
+import com.dominoes.lobby.dto.TablePieceDto;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,8 +26,12 @@ public record OutgoingMessage(
         payload.put("boneyardCount", state.boneyardCount());
         payload.put("hand", state.hand());
         payload.put("currentPlayer", state.currentPlayerId() != null ? state.currentPlayerId().toString() : "");
-        payload.put("table", state.table());
+        payload.put("table", state.table().stream().map(OutgoingMessage::tablePiece).toList());
         return new OutgoingMessage("GAME_STATE", payload);
+    }
+
+    private static Map<String, String> tablePiece(TablePieceDto piece) {
+        return Map.of("code", piece.code(), "rotation", piece.rotation());
     }
 
     public static OutgoingMessage joinAck(UUID userId) {

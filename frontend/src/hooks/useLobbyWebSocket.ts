@@ -5,8 +5,10 @@ import type {
   LobbyStatePayload,
   LobbyUser,
   OutgoingMessage,
+  TablePiecePayload,
   TableSide,
 } from '../types/lobby';
+import type { PieceRotation, TablePiece } from '../types/domino';
 
 const WS_URL = `ws://${window.location.host}/ws/lobby`;
 
@@ -27,12 +29,38 @@ function parseLobbyState(payload: Record<string, unknown>): LobbyStatePayload {
   };
 }
 
+const VALID_ROTATIONS: PieceRotation[] = [
+  'VERTICAL',
+  'HORIZONTAL',
+  'HORIZONTAL_FLIPPED',
+];
+
+function parseTablePiece(raw: unknown): TablePiece | null {
+  if (typeof raw === 'string') {
+    return { code: raw, rotation: 'VERTICAL' };
+  }
+  if (typeof raw !== 'object' || raw === null) {
+    return null;
+  }
+  const piece = raw as TablePiecePayload;
+  const code = typeof piece.code === 'string' ? piece.code : '';
+  const rotation = VALID_ROTATIONS.includes(piece.rotation as PieceRotation)
+    ? (piece.rotation as PieceRotation)
+    : 'HORIZONTAL';
+  if (!code) {
+    return null;
+  }
+  return { code, rotation };
+}
+
 function parseGameState(payload: Record<string, unknown>): GameStatePayload {
   const hand = Array.isArray(payload.hand)
     ? (payload.hand as string[])
     : [];
   const table = Array.isArray(payload.table)
-    ? (payload.table as string[])
+    ? payload.table
+        .map(parseTablePiece)
+        .filter((piece): piece is TablePiece => piece !== null)
     : [];
   const currentPlayerRaw = payload.currentPlayer;
   const currentPlayer =
@@ -59,7 +87,7 @@ export function useLobbyWebSocket() {
   const [inProgress, setInProgress] = useState(false);
   const [boneyardCount, setBoneyardCount] = useState(0);
   const [hand, setHand] = useState<string[]>([]);
-  const [table, setTable] = useState<string[]>([]);
+  const [table, setTable] = useState<TablePiece[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -237,6 +265,10 @@ export function useLobbyWebSocket() {
     [sendMessage],
   );
 
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   useEffect(() => {
     const handlePageHide = () => {
       if (joinedRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -272,5 +304,6 @@ export function useLobbyWebSocket() {
     startGame,
     endGame,
     playPiece,
+    clearError,
   };
 }

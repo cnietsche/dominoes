@@ -1,13 +1,15 @@
 import { StartButton } from './StartButton';
 import { GameTable } from './GameTable';
 import type { TableSide } from '../types/lobby';
+import type { TablePiece } from '../types/domino';
 
 interface GameAreaProps {
   inProgress: boolean;
-  table: string[];
+  table: TablePiece[];
   myUserId: string | null;
   currentPlayerId: string | null;
   selectedPiece: string | null;
+  invalidFlash: { side: TableSide; nonce: number } | null;
   busy: boolean;
   userCount: number;
   error: string | null;
@@ -21,6 +23,7 @@ export function GameArea({
   myUserId,
   currentPlayerId,
   selectedPiece,
+  invalidFlash,
   busy,
   userCount,
   error,
@@ -36,6 +39,7 @@ export function GameArea({
           table={table}
           isMyTurn={isMyTurn}
           selectedPiece={selectedPiece}
+          invalidFlash={invalidFlash}
           onPlayLeft={() => onPlay('LEFT')}
           onPlayRight={() => onPlay('RIGHT')}
         />

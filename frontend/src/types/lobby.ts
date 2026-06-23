@@ -12,12 +12,17 @@ export interface LobbyStatePayload {
 
 export type TableSide = 'LEFT' | 'RIGHT';
 
+export interface TablePiecePayload {
+  code: string;
+  rotation: string;
+}
+
 export interface GameStatePayload {
   inProgress: boolean;
   boneyardCount: number;
   hand: string[];
   currentPlayer: string | null;
-  table: string[];
+  table: TablePiecePayload[];
 }
 
 export type OutgoingMessageType =

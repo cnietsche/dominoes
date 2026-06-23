@@ -9,6 +9,7 @@ import com.dominoes.lobby.exception.GameInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
 import com.dominoes.lobby.exception.LobbyFullException;
 import com.dominoes.lobby.exception.NotYourTurnException;
+import com.dominoes.lobby.exception.PieceDoesNotMatchException;
 import com.dominoes.lobby.exception.PieceNotInHandException;
 import com.dominoes.lobby.service.GameService;
 import com.dominoes.lobby.service.LobbyService;
@@ -164,7 +165,8 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             log.info("User {} played piece {} on {}", userId, pieceCode, sideCode);
         } catch (IllegalArgumentException ex) {
             sendToSession(session, OutgoingMessage.error("Lado da mesa inválido."));
-        } catch (NotYourTurnException | PieceNotInHandException | GameNotInProgressException ex) {
+        } catch (NotYourTurnException | PieceNotInHandException | PieceDoesNotMatchException
+                | GameNotInProgressException ex) {
             sendToSession(session, OutgoingMessage.error(ex.getMessage()));
         }
     }

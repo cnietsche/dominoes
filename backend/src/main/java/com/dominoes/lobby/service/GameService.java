@@ -1,13 +1,17 @@
 package com.dominoes.lobby.service;
 
 import com.dominoes.lobby.domain.PieceEnum;
+import com.dominoes.lobby.domain.PieceRotation;
 import com.dominoes.lobby.domain.TableSide;
 import com.dominoes.lobby.dto.GameStateDto;
+import com.dominoes.lobby.dto.TablePieceDto;
 import com.dominoes.lobby.entity.Lobby;
+import com.dominoes.lobby.entity.TablePiece;
 import com.dominoes.lobby.entity.User;
 import com.dominoes.lobby.exception.GameAlreadyInProgressException;
 import com.dominoes.lobby.exception.GameNotInProgressException;
 import com.dominoes.lobby.exception.NotYourTurnException;
+import com.dominoes.lobby.exception.PieceDoesNotMatchException;
 import com.dominoes.lobby.exception.PieceNotInHandException;
 import com.dominoes.lobby.repository.LobbyRepository;
 import com.dominoes.lobby.repository.UserRepository;
@@ -66,12 +70,12 @@ public class GameService {
             DoubleOpening opening = doubleOpening.get();
             opening.user().getHand().remove(opening.piece());
             userRepository.save(opening.user());
-            lobby.getTable().add(opening.piece());
+            lobby.getTable().add(createOpeningPiece(opening.piece()));
             lobby.setCurrentPlayerId(opening.user().getId());
             advanceTurn(lobby, users);
         } else {
             PieceEnum openingPiece = drawFromBoneyard(lobby);
-            lobby.getTable().add(openingPiece);
+            lobby.getTable().add(createOpeningPiece(openingPiece));
             lobby.setCurrentPlayerId(users.get(random.nextInt(users.size())).getId());
         }
 
@@ -98,11 +102,19 @@ public class GameService {
             throw new PieceNotInHandException();
         }
 
+        List<TablePiece> table = lobby.getTable();
+        int connectValue = side == TableSide.LEFT
+                ? exposedLeftValue(table.getFirst())
+                : exposedRightValue(table.getLast());
+        if (!piece.matchesPip(connectValue)) {
+            throw new PieceDoesNotMatchException();
+        }
+
         hand.remove(piece);
         if (side == TableSide.LEFT) {
-            lobby.getTable().add(0, piece);
+            table.add(0, createPieceConnectingOnRight(piece, connectValue));
         } else {
-            lobby.getTable().add(piece);
+            table.add(createPieceConnectingOnLeft(piece, connectValue));
         }
         userRepository.save(user);
 
@@ -130,7 +142,9 @@ public class GameService {
         }
 
         List<PieceEnum> allPieces = new ArrayList<>(lobby.getBoneyard());
-        allPieces.addAll(lobby.getTable());
+        for (TablePiece tablePiece : lobby.getTable()) {
+            allPieces.add(tablePiece.getPiece());
+        }
         List<User> users = userRepository.findByLobbyOrderByJoinedAtAsc(lobby);
         for (User user : users) {
             allPieces.addAll(user.getHand());
@@ -155,6 +169,63 @@ public class GameService {
         return lobbyRepository.findFirstByOrderByIdAsc()
                 .map(lobby -> toGameState(lobby, userId))
                 .orElse(new GameStateDto(false, 0, List.of(), null, List.of()));
+    }
+
+    private TablePiece createOpeningPiece(PieceEnum piece) {
+        if (piece.isDouble()) {
+            return new TablePiece(piece, PieceRotation.VERTICAL);
+        }
+        return new TablePiece(piece, PieceRotation.HORIZONTAL);
+    }
+
+    private TablePiece createPieceConnectingOnLeft(PieceEnum piece, int connectValue) {
+        if (piece.isDouble()) {
+            return new TablePiece(piece, PieceRotation.VERTICAL);
+        }
+        PieceRotation rotation = rotationWithValueOnLeft(piece, connectValue);
+        return new TablePiece(piece, rotation);
+    }
+
+    private TablePiece createPieceConnectingOnRight(PieceEnum piece, int connectValue) {
+        if (piece.isDouble()) {
+            return new TablePiece(piece, PieceRotation.VERTICAL);
+        }
+        PieceRotation rotation = rotationWithValueOnRight(piece, connectValue);
+        return new TablePiece(piece, rotation);
+    }
+
+    private PieceRotation rotationWithValueOnLeft(PieceEnum piece, int value) {
+        if (piece.leftPip() == value) {
+            return PieceRotation.HORIZONTAL;
+        }
+        if (piece.rightPip() == value) {
+            return PieceRotation.HORIZONTAL_FLIPPED;
+        }
+        throw new PieceDoesNotMatchException();
+    }
+
+    private PieceRotation rotationWithValueOnRight(PieceEnum piece, int value) {
+        if (piece.rightPip() == value) {
+            return PieceRotation.HORIZONTAL;
+        }
+        if (piece.leftPip() == value) {
+            return PieceRotation.HORIZONTAL_FLIPPED;
+        }
+        throw new PieceDoesNotMatchException();
+    }
+
+    private int exposedLeftValue(TablePiece tablePiece) {
+        return switch (tablePiece.getRotation()) {
+            case VERTICAL, HORIZONTAL -> tablePiece.getPiece().leftPip();
+            case HORIZONTAL_FLIPPED -> tablePiece.getPiece().rightPip();
+        };
+    }
+
+    private int exposedRightValue(TablePiece tablePiece) {
+        return switch (tablePiece.getRotation()) {
+            case VERTICAL, HORIZONTAL -> tablePiece.getPiece().rightPip();
+            case HORIZONTAL_FLIPPED -> tablePiece.getPiece().leftPip();
+        };
     }
 
     private Optional<DoubleOpening> findDoubleOpening(List<User> users) {
@@ -210,7 +281,9 @@ public class GameService {
                     .map(user -> user.getHand().stream().map(PieceEnum::getCode).toList())
                     .orElse(List.of());
         }
-        List<String> table = lobby.getTable().stream().map(PieceEnum::getCode).toList();
+        List<TablePieceDto> table = lobby.getTable().stream()
+                .map(tp -> new TablePieceDto(tp.getPiece().getCode(), tp.getRotation().name()))
+                .toList();
         return new GameStateDto(
                 lobby.isInProgress(),
                 lobby.getBoneyard().size(),

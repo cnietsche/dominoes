@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { NicknameForm } from './components/NicknameForm';
 import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyStatus } from './components/LobbyStatus';
@@ -6,6 +6,9 @@ import { GameArea } from './components/GameArea';
 import { PlayerHand } from './components/PlayerHand';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
 import type { TableSide } from './types/lobby';
+import { canPlayPieceOnSide } from './utils/dominoRules';
+
+const FLASH_DURATION_MS = 500;
 
 function App() {
   const {
@@ -25,11 +28,28 @@ function App() {
     startGame,
     endGame,
     playPiece,
+    clearError,
   } = useLobbyWebSocket();
 
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
+  const [invalidFlash, setInvalidFlash] = useState<{
+    side: TableSide;
+    nonce: number;
+  } | null>(null);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMyTurn = myUserId !== null && myUserId === currentPlayerId;
+
+  const flashInvalid = useCallback((side: TableSide) => {
+    if (flashTimeoutRef.current) {
+      clearTimeout(flashTimeoutRef.current);
+    }
+    setInvalidFlash({ side, nonce: Date.now() });
+    flashTimeoutRef.current = setTimeout(() => {
+      setInvalidFlash(null);
+      flashTimeoutRef.current = null;
+    }, FLASH_DURATION_MS);
+  }, []);
 
   const handleSelectPiece = useCallback(
     (piece: string) => {
@@ -46,14 +66,19 @@ function App() {
       if (!selectedPiece || !isMyTurn) {
         return;
       }
+      if (!canPlayPieceOnSide(selectedPiece, table, side)) {
+        flashInvalid(side);
+        return;
+      }
       try {
         await playPiece(selectedPiece, side);
         setSelectedPiece(null);
       } catch {
-        // error handled in hook
+        flashInvalid(side);
+        clearError();
       }
     },
-    [selectedPiece, isMyTurn, playPiece],
+    [selectedPiece, isMyTurn, table, playPiece, flashInvalid, clearError],
   );
 
   return (
@@ -104,6 +129,7 @@ function App() {
             myUserId={myUserId}
             currentPlayerId={currentPlayerId}
             selectedPiece={selectedPiece}
+            invalidFlash={invalidFlash}
             busy={busy}
             userCount={users.length}
             error={error}

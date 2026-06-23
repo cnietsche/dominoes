@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@keyframes flash-invalid {
+  0%,
+  100% {
+    background-color: #2563eb;
+  }
+  50% {
+    background-color: #dc2626;
+  }
+}
+
+.animate-flash-invalid {
+  animation: flash-invalid 0.25s ease-in-out 2;
+}
+
 body {
   margin: 0;
   min-height: 100vh;

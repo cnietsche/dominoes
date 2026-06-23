@@ -45,9 +45,8 @@ public class Lobby {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "lobby_table", joinColumns = @JoinColumn(name = "lobby_id"))
-    @Column(name = "piece", nullable = false)
     @OrderColumn(name = "piece_order")
-    private List<PieceEnum> table = new ArrayList<>();
+    private List<TablePiece> table = new ArrayList<>();
 
     public Lobby(Integer size) {
         this.id = UUID.randomUUID();
