@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as gameApi from '../api/gameApi';
 import type { GameDto } from '../types/game';
 
@@ -9,6 +10,7 @@ interface GameLibraryPageProps {
 }
 
 export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPageProps) {
+  const navigate = useNavigate();
   const [games, setGames] = useState<GameDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
               <li key={game.id}>
                 <button
                   type="button"
+                  onClick={() => navigate(`/games/${game.id}`)}
                   className="flex h-16 w-full items-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/80 text-left transition hover:border-slate-500 hover:bg-slate-800 active:bg-slate-900"
                 >
                   <div className="flex h-full w-1/5 shrink-0 items-center justify-center px-2">

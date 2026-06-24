@@ -8,12 +8,20 @@ services:
     networks:
       - app-net
 
+  dominoes-api:
+    build: ./games/dominoes-api
+    environment:
+      LOBBY_SIZE: ${LOBBY_SIZE:-4}
+    networks:
+      - app-net
+
   frontend:
     build: ./frontend
     ports:
       - "8080:8080"
     depends_on:
       - game-library-api
+      - dominoes-api
     networks:
       - app-net
 

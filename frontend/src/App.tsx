@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { GameLibraryPage } from './pages/GameLibraryPage';
+import { GameRoute } from './pages/GameRoute';
 import { LoginPage } from './pages/LoginPage';
 
 function App() {
@@ -54,18 +56,29 @@ function App() {
     );
   }
 
-  if (isAuthenticated && player && token) {
-    return <GameLibraryPage nickname={player.name} token={token} onLogoff={logout} />;
+  if (!isAuthenticated || !player || !token) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        error={error}
+        onClearError={clearError}
+        busy={busy}
+      />
+    );
   }
 
   return (
-    <LoginPage
-      onLogin={handleLogin}
-      onRegister={handleRegister}
-      error={error}
-      onClearError={clearError}
-      busy={busy}
-    />
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <GameLibraryPage nickname={player.name} token={token} onLogoff={logout} />
+        }
+      />
+      <Route path="/games/:gameId" element={<GameRoute player={player} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
