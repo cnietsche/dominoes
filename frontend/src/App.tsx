@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 function App() {
   const {
     player,
+    token,
     loading,
     error,
     isAuthenticated,
@@ -53,8 +54,8 @@ function App() {
     );
   }
 
-  if (isAuthenticated && player) {
-    return <GameLibraryPage nickname={player.name} onLogoff={logout} />;
+  if (isAuthenticated && player && token) {
+    return <GameLibraryPage nickname={player.name} token={token} onLogoff={logout} />;
   }
 
   return (

@@ -1,9 +1,45 @@
+import { useEffect, useState } from 'react';
+import * as gameApi from '../api/gameApi';
+import type { GameDto } from '../types/game';
+
 interface GameLibraryPageProps {
   nickname: string;
+  token: string;
   onLogoff: () => void;
 }
 
-export function GameLibraryPage({ nickname, onLogoff }: GameLibraryPageProps) {
+export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPageProps) {
+  const [games, setGames] = useState<GameDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    gameApi
+      .listGames(token)
+      .then((items) => {
+        if (!cancelled) {
+          setGames(items);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load games';
+          setError(message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="safe-area-x safe-area-top relative h-[100px] shrink-0 border-b border-slate-700">
@@ -22,7 +58,35 @@ export function GameLibraryPage({ nickname, onLogoff }: GameLibraryPageProps) {
         </button>
       </header>
 
-      <main className="safe-area-x safe-area-bottom flex-1" />
+      <main className="safe-area-x safe-area-bottom flex min-h-0 flex-1 flex-col overflow-y-auto pt-4">
+        {loading && <p className="text-slate-400">Loading games...</p>}
+
+        {!loading && error && <p className="text-red-400">{error}</p>}
+
+        {!loading && !error && (
+          <ul className="mx-auto flex w-full max-w-md flex-col gap-4 pb-4">
+            {games.map((game) => (
+              <li key={game.id}>
+                <button
+                  type="button"
+                  className="flex h-16 w-full items-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/80 text-left transition hover:border-slate-500 hover:bg-slate-800 active:bg-slate-900"
+                >
+                  <div className="flex h-full w-1/5 shrink-0 items-center justify-center px-2">
+                    <img
+                      src={game.icon}
+                      alt=""
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <span className="w-4/5 truncate px-4 text-lg font-semibold text-white">
+                    {game.name}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
     </div>
   );
 }

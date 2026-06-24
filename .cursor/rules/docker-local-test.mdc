@@ -1,0 +1,13 @@
+---
+description: Test completed tasks by bringing up local Docker stack
+alwaysApply: true
+---
+
+# Docker local verification
+
+After finishing a task, verify it by running the local Docker stack unless the user explicitly says not to.
+
+1. Run `docker compose up --build -d` from the repo root.
+2. Smoke-test the changed behavior (API calls, page loads, or relevant endpoints).
+3. Report build/startup failures and fix them before considering the task done.
+4. Skip Docker verification only when the user asks not to run it.
