@@ -23,7 +23,7 @@ export function LoginPage({
     onClearError();
 
     const formData = new FormData(event.currentTarget);
-    const user = String(formData.get('user') ?? '').trim();
+    const user = String(formData.get('user') ?? '').trim().toLowerCase();
     const password = String(formData.get('password') ?? '');
 
     if (user && password) {
@@ -53,8 +53,14 @@ export function LoginPage({
                 required
                 maxLength={64}
                 autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 disabled={busy}
-                className="min-h-12 w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
+                onChange={(event) => {
+                  event.target.value = event.target.value.toLowerCase();
+                }}
+                className="min-h-12 w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-base lowercase text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
               />
             </label>
 
