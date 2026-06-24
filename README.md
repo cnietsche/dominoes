@@ -1,12 +1,14 @@
 # Lobby Online
 
-Aplicação base de lobby online com frontend React + TypeScript e backend Java 21 + Spring Boot, comunicando via WebSocket.
+Aplicação de lobby online com frontend React + TypeScript e backend Go, comunicando via WebSocket.
 
 ## Arquitetura
 
 - **Frontend** (porta `8080`): React, Vite, Tailwind CSS, Nginx com proxy WebSocket
-- **Backend** (rede interna `8081`): Spring Boot, WebSocket, H2 in-memory
+- **Backend** (rede interna `8081`): Go, WebSocket, estado em memória
 - **Comunicação**: cliente ↔ Nginx ↔ backend via `/ws/lobby`
+
+O código Java/Spring original está preservado em `backend_legacy/` para referência.
 
 ## Pré-requisitos
 
@@ -53,7 +55,7 @@ docker compose down -v
 
 ## Validação (somente via Docker)
 
-Não execute `npm run dev` nem `mvn spring-boot:run` no host. Use apenas:
+Não execute `npm run dev` no host. Use apenas:
 
 ```bash
 docker compose up --build
@@ -69,14 +71,15 @@ docker compose logs -f frontend
 4. 5ª aba recebe erro de lobby cheio
 5. Fechar aba libera slot e atualiza demais clientes
 6. Desconexão remove jogador automaticamente
-7. `docker compose down` + `up` reinicia lobby vazio (H2 não persiste)
+7. `docker compose down` + `up` reinicia lobby vazio (estado não persiste)
 8. Backend não acessível diretamente no host (apenas `:8080` do frontend)
 
 ## Estrutura
 
 ```
 dominoes/
-├── backend/          # Spring Boot + WebSocket + H2
+├── backend/          # Go + WebSocket + in-memory
+├── backend_legacy/   # Spring Boot original (referência)
 ├── frontend/         # React + Vite + Tailwind
 ├── docker-compose.yml
 └── .env

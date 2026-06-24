@@ -1,0 +1,460 @@
+package service
+
+import (
+	"fmt"
+	"math/rand"
+	"slices"
+
+	"github.com/dominoes/lobby/internal/domain"
+	"github.com/dominoes/lobby/internal/dto"
+	"github.com/dominoes/lobby/internal/entity"
+	"github.com/dominoes/lobby/internal/exception"
+	"github.com/dominoes/lobby/internal/repository"
+	"github.com/google/uuid"
+)
+
+const handSize = 7
+
+type GameService struct {
+	lobbyRepository *repository.LobbyRepository
+	random          *rand.Rand
+}
+
+func NewGameService(lobbyRepository *repository.LobbyRepository) *GameService {
+	return &GameService{
+		lobbyRepository: lobbyRepository,
+		random:          rand.New(rand.NewSource(rand.Int63())),
+	}
+}
+
+func (s *GameService) StartGame() (dto.GameStateDto, error) {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+
+	lobby, err := s.getLobbyLocked()
+	if err != nil {
+		return dto.GameStateDto{}, err
+	}
+	if lobby.InProgress {
+		return dto.GameStateDto{}, &exception.GameAlreadyInProgressError{}
+	}
+
+	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
+	if len(users) == 0 {
+		return dto.GameStateDto{}, fmt.Errorf("Não há jogadores no lobby.")
+	}
+
+	deck := slices.Clone(domain.FullSet())
+	s.random.Shuffle(len(deck), func(i, j int) {
+		deck[i], deck[j] = deck[j], deck[i]
+	})
+
+	deckIndex := 0
+	for _, user := range users {
+		hand := make([]domain.PieceEnum, handSize)
+		for i := 0; i < handSize; i++ {
+			hand[i] = deck[deckIndex]
+			deckIndex++
+		}
+		user.Hand = hand
+		s.lobbyRepository.SaveUser(user)
+	}
+
+	lobby.Boneyard = deck[deckIndex:]
+	lobby.Table = []entity.TablePiece{}
+	lobby.DrawnThisTurn = false
+	lobby.InProgress = true
+
+	if opening, ok := s.findDoubleOpening(users); ok {
+		user := opening.User
+		removePieceFromHand(user, opening.Piece)
+		s.lobbyRepository.SaveUser(user)
+		lobby.Table = append(lobby.Table, s.createOpeningPiece(opening.Piece))
+		lobby.CurrentPlayerID = &user.ID
+		s.advanceTurn(lobby, users)
+	} else {
+		openingPiece := s.removeRandomFromBoneyard(lobby)
+		lobby.Table = append(lobby.Table, s.createOpeningPiece(openingPiece))
+		randomUser := users[s.random.Intn(len(users))]
+		lobby.CurrentPlayerID = &randomUser.ID
+		s.resolveCurrentPlayerTurn(lobby, users)
+	}
+
+	s.lobbyRepository.SaveLobby(lobby)
+	return s.toGameState(lobby, nil), nil
+}
+
+func (s *GameService) PlayPiece(userID uuid.UUID, piece domain.PieceEnum, side domain.TableSide) (dto.GameStateDto, error) {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+
+	lobby, err := s.getLobbyLocked()
+	if err != nil {
+		return dto.GameStateDto{}, err
+	}
+	if !lobby.InProgress {
+		return dto.GameStateDto{}, &exception.GameNotInProgressError{}
+	}
+	if lobby.CurrentPlayerID == nil || *lobby.CurrentPlayerID != userID {
+		return dto.GameStateDto{}, &exception.NotYourTurnError{}
+	}
+
+	user, ok := s.lobbyRepository.FindUserByID(userID)
+	if !ok {
+		return dto.GameStateDto{}, fmt.Errorf("Jogador não encontrado.")
+	}
+
+	if !containsPiece(user.Hand, piece) {
+		return dto.GameStateDto{}, &exception.PieceNotInHandError{}
+	}
+
+	table := lobby.Table
+	var connectValue int
+	if side == domain.TableSideLeft {
+		connectValue = s.exposedLeftValue(table[0])
+	} else {
+		connectValue = s.exposedRightValue(table[len(table)-1])
+	}
+	if !piece.MatchesPip(connectValue) {
+		return dto.GameStateDto{}, &exception.PieceDoesNotMatchError{}
+	}
+
+	user.Hand = removePiece(user.Hand, piece)
+	if side == domain.TableSideLeft {
+		lobby.Table = append([]entity.TablePiece{s.createPieceConnectingOnRight(piece, connectValue)}, table...)
+	} else {
+		lobby.Table = append(table, s.createPieceConnectingOnLeft(piece, connectValue))
+	}
+	s.lobbyRepository.SaveUser(user)
+
+	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
+	s.advanceTurn(lobby, users)
+	s.lobbyRepository.SaveLobby(lobby)
+
+	return s.toGameState(lobby, &userID), nil
+}
+
+func (s *GameService) DrawFromBoneyard(userID uuid.UUID) (dto.GameStateDto, error) {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+
+	lobby, err := s.getLobbyLocked()
+	if err != nil {
+		return dto.GameStateDto{}, err
+	}
+	if !lobby.InProgress {
+		return dto.GameStateDto{}, &exception.GameNotInProgressError{}
+	}
+	if lobby.CurrentPlayerID == nil || *lobby.CurrentPlayerID != userID {
+		return dto.GameStateDto{}, &exception.NotYourTurnError{}
+	}
+	if lobby.DrawnThisTurn {
+		return dto.GameStateDto{}, &exception.AlreadyDrawnThisTurnError{}
+	}
+
+	user, ok := s.lobbyRepository.FindUserByID(userID)
+	if !ok {
+		return dto.GameStateDto{}, fmt.Errorf("Jogador não encontrado.")
+	}
+
+	if s.hasPlayablePiece(user.Hand, lobby.Table) {
+		return dto.GameStateDto{}, &exception.HasPlayablePieceError{}
+	}
+	if len(lobby.Boneyard) == 0 {
+		return dto.GameStateDto{}, &exception.BoneyardEmptyError{}
+	}
+
+	drawnIndex := s.random.Intn(len(lobby.Boneyard))
+	drawn := lobby.Boneyard[drawnIndex]
+	lobby.Boneyard = append(lobby.Boneyard[:drawnIndex], lobby.Boneyard[drawnIndex+1:]...)
+	user.Hand = append(user.Hand, drawn)
+	lobby.DrawnThisTurn = true
+	s.lobbyRepository.SaveUser(user)
+
+	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
+	if !s.hasPlayablePiece(user.Hand, lobby.Table) {
+		s.advanceTurn(lobby, users)
+	}
+
+	s.lobbyRepository.SaveLobby(lobby)
+	return s.toGameState(lobby, &userID), nil
+}
+
+func (s *GameService) FinishGame() (dto.GameStateDto, error) {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+
+	lobby, err := s.getLobbyLocked()
+	if err != nil {
+		return dto.GameStateDto{}, err
+	}
+	if !lobby.InProgress {
+		return dto.GameStateDto{}, &exception.GameNotInProgressError{}
+	}
+	s.endGameLocked(lobby)
+	return s.toGameState(lobby, nil), nil
+}
+
+func (s *GameService) EndGame(lobby *entity.Lobby) {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+	s.endGameLocked(lobby)
+}
+
+func (s *GameService) endGameLocked(lobby *entity.Lobby) {
+	if !lobby.InProgress {
+		return
+	}
+
+	allPieces := slices.Clone(lobby.Boneyard)
+	for _, tablePiece := range lobby.Table {
+		allPieces = append(allPieces, tablePiece.Piece)
+	}
+	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
+	for _, user := range users {
+		allPieces = append(allPieces, user.Hand...)
+		user.Hand = []domain.PieceEnum{}
+		s.lobbyRepository.SaveUser(user)
+	}
+
+	lobby.Boneyard = allPieces
+	lobby.Table = []entity.TablePiece{}
+	lobby.InProgress = false
+	lobby.CurrentPlayerID = nil
+	lobby.DrawnThisTurn = false
+	s.lobbyRepository.SaveLobby(lobby)
+}
+
+func (s *GameService) GetGameState() dto.GameStateDto {
+	return s.GetGameStateForUser(nil)
+}
+
+func (s *GameService) GetGameStateForUser(userID *uuid.UUID) dto.GameStateDto {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+
+	lobby, ok := s.lobbyRepository.FindFirstByOrderByIDAsc()
+	if !ok {
+		return dto.GameStateDto{
+			InProgress:    false,
+			BoneyardCount: 0,
+			Hand:          []string{},
+			Table:         []dto.TablePieceDto{},
+			DrawnThisTurn: false,
+		}
+	}
+	return s.toGameState(lobby, userID)
+}
+
+func (s *GameService) createOpeningPiece(piece domain.PieceEnum) entity.TablePiece {
+	if piece.IsDouble() {
+		return entity.NewTablePiece(piece, domain.PieceRotationVertical)
+	}
+	return entity.NewTablePiece(piece, domain.PieceRotationHorizontal)
+}
+
+func (s *GameService) createPieceConnectingOnLeft(piece domain.PieceEnum, connectValue int) entity.TablePiece {
+	if piece.IsDouble() {
+		return entity.NewTablePiece(piece, domain.PieceRotationVertical)
+	}
+	rotation := s.rotationWithValueOnLeft(piece, connectValue)
+	return entity.NewTablePiece(piece, rotation)
+}
+
+func (s *GameService) createPieceConnectingOnRight(piece domain.PieceEnum, connectValue int) entity.TablePiece {
+	if piece.IsDouble() {
+		return entity.NewTablePiece(piece, domain.PieceRotationVertical)
+	}
+	rotation := s.rotationWithValueOnRight(piece, connectValue)
+	return entity.NewTablePiece(piece, rotation)
+}
+
+func (s *GameService) rotationWithValueOnLeft(piece domain.PieceEnum, value int) domain.PieceRotation {
+	if piece.LeftPip() == value {
+		return domain.PieceRotationHorizontal
+	}
+	if piece.RightPip() == value {
+		return domain.PieceRotationHorizontalFlipped
+	}
+	panic(&exception.PieceDoesNotMatchError{})
+}
+
+func (s *GameService) rotationWithValueOnRight(piece domain.PieceEnum, value int) domain.PieceRotation {
+	if piece.RightPip() == value {
+		return domain.PieceRotationHorizontal
+	}
+	if piece.LeftPip() == value {
+		return domain.PieceRotationHorizontalFlipped
+	}
+	panic(&exception.PieceDoesNotMatchError{})
+}
+
+func (s *GameService) hasPlayablePiece(hand []domain.PieceEnum, table []entity.TablePiece) bool {
+	if len(table) == 0 || len(hand) == 0 {
+		return false
+	}
+	leftEnd := s.exposedLeftValue(table[0])
+	rightEnd := s.exposedRightValue(table[len(table)-1])
+	for _, piece := range hand {
+		if piece.MatchesPip(leftEnd) || piece.MatchesPip(rightEnd) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *GameService) canDrawFromBoneyard(lobby *entity.Lobby) bool {
+	return !lobby.DrawnThisTurn && len(lobby.Boneyard) > 0
+}
+
+func (s *GameService) resolveCurrentPlayerTurn(lobby *entity.Lobby, users []*entity.User) {
+	for skipped := 0; skipped < len(users); skipped++ {
+		current := s.findCurrentUser(lobby, users)
+		if current == nil {
+			return
+		}
+		if s.hasPlayablePiece(current.Hand, lobby.Table) || s.canDrawFromBoneyard(lobby) {
+			return
+		}
+		s.moveToNextPlayer(lobby, users)
+		lobby.DrawnThisTurn = false
+	}
+}
+
+func (s *GameService) findCurrentUser(lobby *entity.Lobby, users []*entity.User) *entity.User {
+	if lobby.CurrentPlayerID == nil {
+		return nil
+	}
+	for _, user := range users {
+		if user.ID == *lobby.CurrentPlayerID {
+			return user
+		}
+	}
+	return nil
+}
+
+func (s *GameService) exposedLeftValue(tablePiece entity.TablePiece) int {
+	switch tablePiece.Rotation {
+	case domain.PieceRotationVertical, domain.PieceRotationHorizontal:
+		return tablePiece.Piece.LeftPip()
+	case domain.PieceRotationHorizontalFlipped:
+		return tablePiece.Piece.RightPip()
+	default:
+		return tablePiece.Piece.LeftPip()
+	}
+}
+
+func (s *GameService) exposedRightValue(tablePiece entity.TablePiece) int {
+	switch tablePiece.Rotation {
+	case domain.PieceRotationVertical, domain.PieceRotationHorizontal:
+		return tablePiece.Piece.RightPip()
+	case domain.PieceRotationHorizontalFlipped:
+		return tablePiece.Piece.LeftPip()
+	default:
+		return tablePiece.Piece.RightPip()
+	}
+}
+
+func (s *GameService) findDoubleOpening(users []*entity.User) (DoubleOpening, bool) {
+	for _, doublePiece := range domain.DoublesByPriority {
+		for _, user := range users {
+			if containsPiece(user.Hand, doublePiece) {
+				return DoubleOpening{User: user, Piece: doublePiece}, true
+			}
+		}
+	}
+	return DoubleOpening{}, false
+}
+
+func (s *GameService) removeRandomFromBoneyard(lobby *entity.Lobby) domain.PieceEnum {
+	pieceIndex := s.random.Intn(len(lobby.Boneyard))
+	piece := lobby.Boneyard[pieceIndex]
+	lobby.Boneyard = append(lobby.Boneyard[:pieceIndex], lobby.Boneyard[pieceIndex+1:]...)
+	return piece
+}
+
+func (s *GameService) advanceTurn(lobby *entity.Lobby, users []*entity.User) {
+	s.moveToNextPlayer(lobby, users)
+	lobby.DrawnThisTurn = false
+	s.resolveCurrentPlayerTurn(lobby, users)
+}
+
+func (s *GameService) moveToNextPlayer(lobby *entity.Lobby, users []*entity.User) {
+	if len(users) == 0 {
+		return
+	}
+	currentID := lobby.CurrentPlayerID
+	currentIndex := -1
+	for i, user := range users {
+		if currentID != nil && user.ID == *currentID {
+			currentIndex = i
+			break
+		}
+	}
+	if currentIndex == -1 {
+		lobby.CurrentPlayerID = &users[0].ID
+	} else {
+		nextIndex := (currentIndex + 1) % len(users)
+		lobby.CurrentPlayerID = &users[nextIndex].ID
+	}
+}
+
+func (s *GameService) getLobbyLocked() (*entity.Lobby, error) {
+	lobby, ok := s.lobbyRepository.FindFirstByOrderByIDAsc()
+	if !ok {
+		return nil, fmt.Errorf("Lobby não encontrado.")
+	}
+	return lobby, nil
+}
+
+func (s *GameService) toGameState(lobby *entity.Lobby, userID *uuid.UUID) dto.GameStateDto {
+	hand := []string{}
+	if userID != nil && lobby.InProgress {
+		if user, ok := s.lobbyRepository.FindUserByID(*userID); ok {
+			hand = make([]string, len(user.Hand))
+			for i, piece := range user.Hand {
+				hand[i] = piece.Code()
+			}
+		}
+	}
+
+	table := make([]dto.TablePieceDto, len(lobby.Table))
+	for i, tp := range lobby.Table {
+		table[i] = dto.TablePieceDto{
+			Code:     tp.Piece.Code(),
+			Rotation: string(tp.Rotation),
+		}
+	}
+
+	return dto.GameStateDto{
+		InProgress:      lobby.InProgress,
+		BoneyardCount:   len(lobby.Boneyard),
+		Hand:            hand,
+		CurrentPlayerID: lobby.CurrentPlayerID,
+		Table:           table,
+		DrawnThisTurn:   lobby.DrawnThisTurn,
+	}
+}
+
+func containsPiece(hand []domain.PieceEnum, piece domain.PieceEnum) bool {
+	for _, p := range hand {
+		if p == piece {
+			return true
+		}
+	}
+	return false
+}
+
+func removePiece(hand []domain.PieceEnum, piece domain.PieceEnum) []domain.PieceEnum {
+	result := make([]domain.PieceEnum, 0, len(hand)-1)
+	for _, p := range hand {
+		if p != piece {
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
+func removePieceFromHand(user *entity.User, piece domain.PieceEnum) {
+	user.Hand = removePiece(user.Hand, piece)
+}

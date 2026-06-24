@@ -1,11 +1,13 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM golang:1.23-alpine AS build
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn package -DskipTests -q
+COPY go.mod ./
+RUN go mod download
+COPY . .
+RUN go mod tidy
+RUN CGO_ENABLED=0 go build -o lobby ./cmd/lobby
 
-FROM eclipse-temurin:21-jre
+FROM alpine:3.20
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/lobby .
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["./lobby"]
