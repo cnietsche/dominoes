@@ -1,19 +1,24 @@
 services:
-  backend:
-    build: ./backend
+  game-library-api:
+    build: ./game-library-api
     environment:
-      LOBBY_SIZE: ${LOBBY_SIZE:-4}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production-must-be-at-least-32-chars}
+    volumes:
+      - h2-data:/data
     networks:
-      - lobby-net
+      - app-net
 
   frontend:
     build: ./frontend
     ports:
       - "8080:8080"
     depends_on:
-      - backend
+      - game-library-api
     networks:
-      - lobby-net
+      - app-net
+
+volumes:
+  h2-data:
 
 networks:
-  lobby-net:
+  app-net:
