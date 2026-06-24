@@ -15,12 +15,16 @@ type UserDto struct {
 }
 
 type GameStateDto struct {
-	InProgress      bool            `json:"inProgress"`
-	BoneyardCount   int             `json:"boneyardCount"`
-	Hand            []string        `json:"hand"`
-	CurrentPlayerID *uuid.UUID      `json:"-"`
-	Table           []TablePieceDto `json:"table"`
-	DrawnThisTurn   bool            `json:"drawnThisTurn"`
+	InProgress       bool            `json:"inProgress"`
+	BoneyardCount    int             `json:"boneyardCount"`
+	Hand             []string        `json:"hand"`
+	CurrentPlayerID  *uuid.UUID      `json:"-"`
+	Table            []TablePieceDto `json:"table"`
+	DrawnThisTurn    bool            `json:"drawnThisTurn"`
+	WinnerID          *uuid.UUID      `json:"-"`
+	WinnerNickname    string          `json:"-"`
+	CanStart          bool            `json:"-"`
+	ShowWinnerModal   bool            `json:"-"`
 }
 
 type TablePieceDto struct {

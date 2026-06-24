@@ -38,6 +38,9 @@ func (s *GameService) StartGame() (dto.GameStateDto, error) {
 	if lobby.InProgress {
 		return dto.GameStateDto{}, &exception.GameAlreadyInProgressError{}
 	}
+	if lobby.WinnerID != nil {
+		return dto.GameStateDto{}, &exception.WinnerPendingError{}
+	}
 
 	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
 	if len(users) == 0 {
@@ -64,6 +67,9 @@ func (s *GameService) StartGame() (dto.GameStateDto, error) {
 	lobby.Table = []entity.TablePiece{}
 	lobby.DrawnThisTurn = false
 	lobby.InProgress = true
+	lobby.WinnerID = nil
+	lobby.WinnerNickname = ""
+	lobby.WinnerDismissedBy = nil
 
 	if opening, ok := s.findDoubleOpening(users); ok {
 		user := opening.User
@@ -127,8 +133,12 @@ func (s *GameService) PlayPiece(userID uuid.UUID, piece domain.PieceEnum, side d
 	}
 	s.lobbyRepository.SaveUser(user)
 
-	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
-	s.advanceTurn(lobby, users)
+	if len(user.Hand) == 0 {
+		s.endGameLocked(lobby, user)
+	} else {
+		users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
+		s.advanceTurn(lobby, users)
+	}
 	s.lobbyRepository.SaveLobby(lobby)
 
 	return s.toGameState(lobby, &userID), nil
@@ -191,17 +201,40 @@ func (s *GameService) FinishGame() (dto.GameStateDto, error) {
 	if !lobby.InProgress {
 		return dto.GameStateDto{}, &exception.GameNotInProgressError{}
 	}
-	s.endGameLocked(lobby)
+	s.endGameLocked(lobby, nil)
 	return s.toGameState(lobby, nil), nil
 }
 
 func (s *GameService) EndGame(lobby *entity.Lobby) {
 	s.lobbyRepository.Lock()
 	defer s.lobbyRepository.Unlock()
-	s.endGameLocked(lobby)
+	s.endGameLocked(lobby, nil)
 }
 
-func (s *GameService) endGameLocked(lobby *entity.Lobby) {
+func (s *GameService) DismissWinner(userID uuid.UUID) {
+	s.lobbyRepository.Lock()
+	defer s.lobbyRepository.Unlock()
+
+	lobby, ok := s.lobbyRepository.FindFirstByOrderByIDAsc()
+	if !ok || lobby.WinnerID == nil {
+		return
+	}
+	if lobby.WinnerDismissedBy == nil {
+		lobby.WinnerDismissedBy = make(map[uuid.UUID]bool)
+	}
+	lobby.WinnerDismissedBy[userID] = true
+	s.tryClearWinnerIfAllDismissed(lobby)
+	s.lobbyRepository.SaveLobby(lobby)
+}
+
+func (s *GameService) OnUserLeftLobby(lobby *entity.Lobby, userID uuid.UUID) {
+	if lobby.WinnerDismissedBy != nil {
+		delete(lobby.WinnerDismissedBy, userID)
+	}
+	s.tryClearWinnerIfAllDismissed(lobby)
+}
+
+func (s *GameService) endGameLocked(lobby *entity.Lobby, winner *entity.User) {
 	if !lobby.InProgress {
 		return
 	}
@@ -222,6 +255,16 @@ func (s *GameService) endGameLocked(lobby *entity.Lobby) {
 	lobby.InProgress = false
 	lobby.CurrentPlayerID = nil
 	lobby.DrawnThisTurn = false
+	if winner != nil {
+		winnerID := winner.ID
+		lobby.WinnerID = &winnerID
+		lobby.WinnerNickname = winner.Nickname
+		lobby.WinnerDismissedBy = make(map[uuid.UUID]bool)
+	} else {
+		lobby.WinnerID = nil
+		lobby.WinnerNickname = ""
+		lobby.WinnerDismissedBy = nil
+	}
 	s.lobbyRepository.SaveLobby(lobby)
 }
 
@@ -433,7 +476,46 @@ func (s *GameService) toGameState(lobby *entity.Lobby, userID *uuid.UUID) dto.Ga
 		CurrentPlayerID: lobby.CurrentPlayerID,
 		Table:           table,
 		DrawnThisTurn:   lobby.DrawnThisTurn,
+		WinnerID:        lobby.WinnerID,
+		WinnerNickname:  lobby.WinnerNickname,
+		CanStart:        s.canStartLocked(lobby),
+		ShowWinnerModal: s.showWinnerModalLocked(lobby, userID),
 	}
+}
+
+func (s *GameService) canStartLocked(lobby *entity.Lobby) bool {
+	return lobby.WinnerID == nil
+}
+
+func (s *GameService) showWinnerModalLocked(lobby *entity.Lobby, userID *uuid.UUID) bool {
+	if lobby.WinnerID == nil || userID == nil {
+		return false
+	}
+	if lobby.WinnerDismissedBy == nil {
+		return true
+	}
+	return !lobby.WinnerDismissedBy[*userID]
+}
+
+func (s *GameService) tryClearWinnerIfAllDismissed(lobby *entity.Lobby) {
+	if lobby.WinnerID == nil {
+		return
+	}
+	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
+	if len(users) == 0 {
+		lobby.WinnerID = nil
+		lobby.WinnerNickname = ""
+		lobby.WinnerDismissedBy = nil
+		return
+	}
+	for _, user := range users {
+		if !lobby.WinnerDismissedBy[user.ID] {
+			return
+		}
+	}
+	lobby.WinnerID = nil
+	lobby.WinnerNickname = ""
+	lobby.WinnerDismissedBy = nil
 }
 
 func containsPiece(hand []domain.PieceEnum, piece domain.PieceEnum) bool {

@@ -8,13 +8,16 @@ import (
 )
 
 type Lobby struct {
-	ID              uuid.UUID
-	Size            int
-	InProgress      bool
-	CurrentPlayerID *uuid.UUID
-	DrawnThisTurn   bool
-	Boneyard        []domain.PieceEnum
-	Table           []TablePiece
+	ID               uuid.UUID
+	Size             int
+	InProgress       bool
+	CurrentPlayerID  *uuid.UUID
+	DrawnThisTurn    bool
+	Boneyard         []domain.PieceEnum
+	Table            []TablePiece
+	WinnerID           *uuid.UUID
+	WinnerNickname     string
+	WinnerDismissedBy  map[uuid.UUID]bool
 }
 
 func NewLobby(size int) *Lobby {

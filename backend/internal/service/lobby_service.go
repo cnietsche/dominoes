@@ -51,8 +51,9 @@ func (s *LobbyService) LeaveLobby(userID uuid.UUID) {
 		return
 	}
 	if lobby.InProgress {
-		s.gameService.endGameLocked(lobby)
+		s.gameService.endGameLocked(lobby, nil)
 	}
+	s.gameService.OnUserLeftLobby(lobby, userID)
 	s.lobbyRepository.DeleteUserByID(userID)
 	_ = user
 }

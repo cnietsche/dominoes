@@ -4,6 +4,7 @@ import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyStatus } from './components/LobbyStatus';
 import { GameArea } from './components/GameArea';
 import { PlayerHand } from './components/PlayerHand';
+import { WinnerModal } from './components/WinnerModal';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
 import type { TableSide } from './types/lobby';
 import { canPlayPiece, canPlayPieceOnSide } from './utils/dominoRules';
@@ -30,7 +31,11 @@ function App() {
     endGame,
     playPiece,
     drawFromBoneyard,
+    dismissWinner,
     clearError,
+    winnerNickname,
+    showWinnerModal,
+    canStart,
   } = useLobbyWebSocket();
 
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
@@ -149,6 +154,7 @@ function App() {
             boneyardCount={boneyardCount}
             hand={hand}
             drawnThisTurn={drawnThisTurn}
+            canStart={canStart}
             onStart={startGame}
             onPlay={handlePlay}
             onDrawFromBoneyard={drawFromBoneyard}
@@ -166,6 +172,13 @@ function App() {
             onSelectPiece={handleSelectPiece}
           />
         </footer>
+      )}
+
+      {joined && showWinnerModal && winnerNickname && (
+        <WinnerModal
+          winnerNickname={winnerNickname}
+          onDismiss={dismissWinner}
+        />
       )}
     </div>
   );

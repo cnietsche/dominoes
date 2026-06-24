@@ -30,6 +30,12 @@ func GameState(state dto.GameStateDto) OutgoingMessage {
 	if state.CurrentPlayerID != nil {
 		currentPlayer = state.CurrentPlayerID.String()
 	}
+	winnerID := ""
+	winnerNickname := ""
+	if state.WinnerID != nil {
+		winnerID = state.WinnerID.String()
+		winnerNickname = state.WinnerNickname
+	}
 	table := make([]map[string]string, len(state.Table))
 	for i, piece := range state.Table {
 		table[i] = map[string]string{
@@ -40,12 +46,16 @@ func GameState(state dto.GameStateDto) OutgoingMessage {
 	return OutgoingMessage{
 		Type: "GAME_STATE",
 		Payload: map[string]any{
-			"inProgress":      state.InProgress,
-			"boneyardCount":   state.BoneyardCount,
-			"hand":            state.Hand,
-			"currentPlayer":   currentPlayer,
-			"table":           table,
-			"drawnThisTurn":   state.DrawnThisTurn,
+			"inProgress":       state.InProgress,
+			"boneyardCount":    state.BoneyardCount,
+			"hand":             state.Hand,
+			"currentPlayer":    currentPlayer,
+			"table":            table,
+			"drawnThisTurn":    state.DrawnThisTurn,
+			"winnerId":         winnerID,
+			"winnerNickname":   winnerNickname,
+			"canStart":         state.CanStart,
+			"showWinnerModal":  state.ShowWinnerModal,
 		},
 	}
 }

@@ -39,3 +39,9 @@ func (e *HasPlayablePieceError) Error() string { return "Você possui peças jog
 type BoneyardEmptyError struct{}
 
 func (e *BoneyardEmptyError) Error() string { return "Não há mais peças no monte." }
+
+type WinnerPendingError struct{}
+
+func (e *WinnerPendingError) Error() string {
+	return "Aguardando todos os jogadores confirmarem o resultado."
+}

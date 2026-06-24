@@ -18,6 +18,7 @@ interface GameAreaProps {
   boneyardCount: number;
   hand: string[];
   drawnThisTurn: boolean;
+  canStart: boolean;
   onStart: () => void;
   onPlay: (side: TableSide) => void;
   onDrawFromBoneyard: () => void;
@@ -36,6 +37,7 @@ export function GameArea({
   boneyardCount,
   hand,
   drawnThisTurn,
+  canStart,
   onStart,
   onPlay,
   onDrawFromBoneyard,
@@ -80,7 +82,7 @@ export function GameArea({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       <StartButton
-        disabled={busy || userCount < 1}
+        disabled={busy || userCount < 1 || !canStart}
         onClick={onStart}
       />
       {error && (

@@ -67,6 +67,16 @@ function parseGameState(payload: Record<string, unknown>): GameStatePayload {
     typeof currentPlayerRaw === 'string' && currentPlayerRaw.length > 0
       ? currentPlayerRaw
       : null;
+  const winnerIdRaw = payload.winnerId;
+  const winnerId =
+    typeof winnerIdRaw === 'string' && winnerIdRaw.length > 0
+      ? winnerIdRaw
+      : null;
+  const winnerNicknameRaw = payload.winnerNickname;
+  const winnerNickname =
+    typeof winnerNicknameRaw === 'string' && winnerNicknameRaw.length > 0
+      ? winnerNicknameRaw
+      : null;
   return {
     inProgress: Boolean(payload.inProgress),
     boneyardCount: Number(payload.boneyardCount ?? 0),
@@ -74,6 +84,10 @@ function parseGameState(payload: Record<string, unknown>): GameStatePayload {
     currentPlayer,
     table,
     drawnThisTurn: Boolean(payload.drawnThisTurn),
+    winnerId,
+    winnerNickname,
+    canStart: payload.canStart !== undefined ? Boolean(payload.canStart) : true,
+    showWinnerModal: Boolean(payload.showWinnerModal),
   };
 }
 
@@ -91,6 +105,10 @@ export function useLobbyWebSocket() {
   const [table, setTable] = useState<TablePiece[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [drawnThisTurn, setDrawnThisTurn] = useState(false);
+  const [winnerId, setWinnerId] = useState<string | null>(null);
+  const [winnerNickname, setWinnerNickname] = useState<string | null>(null);
+  const [canStart, setCanStart] = useState(true);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -113,6 +131,10 @@ export function useLobbyWebSocket() {
     setTable(state.table);
     setCurrentPlayerId(state.currentPlayer);
     setDrawnThisTurn(state.drawnThisTurn);
+    setWinnerId(state.winnerId);
+    setWinnerNickname(state.winnerNickname);
+    setCanStart(state.canStart);
+    setShowWinnerModal(state.showWinnerModal);
   }, []);
 
   const handleIncomingMessage = useCallback(
@@ -209,6 +231,10 @@ export function useLobbyWebSocket() {
         setTable([]);
         setCurrentPlayerId(null);
         setDrawnThisTurn(false);
+        setWinnerId(null);
+        setWinnerNickname(null);
+        setCanStart(true);
+        setShowWinnerModal(false);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
       };
@@ -277,6 +303,13 @@ export function useLobbyWebSocket() {
     setError(null);
   }, [sendMessage]);
 
+  const dismissWinner = useCallback(() => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'DISMISS_WINNER' }));
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -312,12 +345,17 @@ export function useLobbyWebSocket() {
     table,
     currentPlayerId,
     drawnThisTurn,
+    winnerId,
+    winnerNickname,
+    canStart,
+    showWinnerModal,
     join,
     leave,
     startGame,
     endGame,
     playPiece,
     drawFromBoneyard,
+    dismissWinner,
     clearError,
   };
 }

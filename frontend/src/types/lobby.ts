@@ -24,6 +24,10 @@ export interface GameStatePayload {
   currentPlayer: string | null;
   table: TablePiecePayload[];
   drawnThisTurn: boolean;
+  winnerId: string | null;
+  winnerNickname: string | null;
+  canStart: boolean;
+  showWinnerModal: boolean;
 }
 
 export type OutgoingMessageType =
@@ -32,7 +36,8 @@ export type OutgoingMessageType =
   | 'START_GAME'
   | 'END_GAME'
   | 'PLAY_PIECE'
-  | 'DRAW_FROM_BONEYARD';
+  | 'DRAW_FROM_BONEYARD'
+  | 'DISMISS_WINNER';
 
 export interface OutgoingMessage {
   type: OutgoingMessageType;

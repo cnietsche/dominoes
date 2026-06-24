@@ -89,6 +89,8 @@ func (h *LobbyWebSocketHandler) handleTextMessage(session *Session, message []by
 		h.handlePlayPiece(session, incoming.Piece, incoming.Side)
 	case "DRAW_FROM_BONEYARD":
 		h.handleDrawFromBoneyard(session)
+	case "DISMISS_WINNER":
+		h.handleDismissWinner(session)
 	default:
 		h.sendToSession(session, ErrorMessage("Tipo de mensagem desconhecido."))
 	}
@@ -220,6 +222,15 @@ func (h *LobbyWebSocketHandler) handleDrawFromBoneyard(session *Session) {
 	h.broadcastLobbyState()
 	h.broadcastGameState()
 	log.Printf("User %s drew from boneyard", userID)
+}
+
+func (h *LobbyWebSocketHandler) handleDismissWinner(session *Session) {
+	userID, ok := h.sessionRegistry.FindUserID(session.ID)
+	if !ok {
+		return
+	}
+	h.gameService.DismissWinner(userID)
+	h.broadcastGameState()
 }
 
 func (h *LobbyWebSocketHandler) broadcastLobbyState() {
