@@ -23,8 +23,9 @@ type GameStateDto struct {
 	DrawnThisTurn    bool            `json:"drawnThisTurn"`
 	WinnerID          *uuid.UUID      `json:"-"`
 	WinnerNickname    string          `json:"-"`
+	DrawPending       bool            `json:"-"`
 	CanStart          bool            `json:"-"`
-	ShowWinnerModal   bool            `json:"-"`
+	ShowResultModal   bool            `json:"-"`
 }
 
 type TablePieceDto struct {

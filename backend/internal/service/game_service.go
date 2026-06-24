@@ -15,6 +15,14 @@ import (
 
 const handSize = 7
 
+type gameEndType int
+
+const (
+	endNormal gameEndType = iota
+	endWin
+	endDraw
+)
+
 type GameService struct {
 	lobbyRepository *repository.LobbyRepository
 	random          *rand.Rand
@@ -38,7 +46,7 @@ func (s *GameService) StartGame() (dto.GameStateDto, error) {
 	if lobby.InProgress {
 		return dto.GameStateDto{}, &exception.GameAlreadyInProgressError{}
 	}
-	if lobby.WinnerID != nil {
+	if lobby.WinnerID != nil || lobby.DrawPending {
 		return dto.GameStateDto{}, &exception.WinnerPendingError{}
 	}
 
@@ -69,6 +77,7 @@ func (s *GameService) StartGame() (dto.GameStateDto, error) {
 	lobby.InProgress = true
 	lobby.WinnerID = nil
 	lobby.WinnerNickname = ""
+	lobby.DrawPending = false
 	lobby.WinnerDismissedBy = nil
 
 	if opening, ok := s.findDoubleOpening(users); ok {
@@ -134,7 +143,7 @@ func (s *GameService) PlayPiece(userID uuid.UUID, piece domain.PieceEnum, side d
 	s.lobbyRepository.SaveUser(user)
 
 	if len(user.Hand) == 0 {
-		s.endGameLocked(lobby, user)
+		s.endGameLocked(lobby, user, endWin)
 	} else {
 		users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
 		s.advanceTurn(lobby, users)
@@ -201,14 +210,14 @@ func (s *GameService) FinishGame() (dto.GameStateDto, error) {
 	if !lobby.InProgress {
 		return dto.GameStateDto{}, &exception.GameNotInProgressError{}
 	}
-	s.endGameLocked(lobby, nil)
+	s.endGameLocked(lobby, nil, endNormal)
 	return s.toGameState(lobby, nil), nil
 }
 
 func (s *GameService) EndGame(lobby *entity.Lobby) {
 	s.lobbyRepository.Lock()
 	defer s.lobbyRepository.Unlock()
-	s.endGameLocked(lobby, nil)
+	s.endGameLocked(lobby, nil, endNormal)
 }
 
 func (s *GameService) DismissWinner(userID uuid.UUID) {
@@ -216,14 +225,14 @@ func (s *GameService) DismissWinner(userID uuid.UUID) {
 	defer s.lobbyRepository.Unlock()
 
 	lobby, ok := s.lobbyRepository.FindFirstByOrderByIDAsc()
-	if !ok || lobby.WinnerID == nil {
+	if !ok || (lobby.WinnerID == nil && !lobby.DrawPending) {
 		return
 	}
 	if lobby.WinnerDismissedBy == nil {
 		lobby.WinnerDismissedBy = make(map[uuid.UUID]bool)
 	}
 	lobby.WinnerDismissedBy[userID] = true
-	s.tryClearWinnerIfAllDismissed(lobby)
+	s.tryClearPendingResultIfAllDismissed(lobby)
 	s.lobbyRepository.SaveLobby(lobby)
 }
 
@@ -231,10 +240,10 @@ func (s *GameService) OnUserLeftLobby(lobby *entity.Lobby, userID uuid.UUID) {
 	if lobby.WinnerDismissedBy != nil {
 		delete(lobby.WinnerDismissedBy, userID)
 	}
-	s.tryClearWinnerIfAllDismissed(lobby)
+	s.tryClearPendingResultIfAllDismissed(lobby)
 }
 
-func (s *GameService) endGameLocked(lobby *entity.Lobby, winner *entity.User) {
+func (s *GameService) endGameLocked(lobby *entity.Lobby, winner *entity.User, endType gameEndType) {
 	if !lobby.InProgress {
 		return
 	}
@@ -255,15 +264,22 @@ func (s *GameService) endGameLocked(lobby *entity.Lobby, winner *entity.User) {
 	lobby.InProgress = false
 	lobby.CurrentPlayerID = nil
 	lobby.DrawnThisTurn = false
-	if winner != nil {
-		winnerID := winner.ID
-		lobby.WinnerID = &winnerID
-		lobby.WinnerNickname = winner.Nickname
+	lobby.WinnerID = nil
+	lobby.WinnerNickname = ""
+	lobby.DrawPending = false
+	lobby.WinnerDismissedBy = nil
+
+	switch endType {
+	case endWin:
+		if winner != nil {
+			winnerID := winner.ID
+			lobby.WinnerID = &winnerID
+			lobby.WinnerNickname = winner.Nickname
+			lobby.WinnerDismissedBy = make(map[uuid.UUID]bool)
+		}
+	case endDraw:
+		lobby.DrawPending = true
 		lobby.WinnerDismissedBy = make(map[uuid.UUID]bool)
-	} else {
-		lobby.WinnerID = nil
-		lobby.WinnerNickname = ""
-		lobby.WinnerDismissedBy = nil
 	}
 	s.lobbyRepository.SaveLobby(lobby)
 }
@@ -420,6 +436,28 @@ func (s *GameService) advanceTurn(lobby *entity.Lobby, users []*entity.User) {
 	s.moveToNextPlayer(lobby, users)
 	lobby.DrawnThisTurn = false
 	s.resolveCurrentPlayerTurn(lobby, users)
+	s.tryEndGameOnStalemate(lobby, users)
+}
+
+func (s *GameService) tryEndGameOnStalemate(lobby *entity.Lobby, users []*entity.User) {
+	if !lobby.InProgress {
+		return
+	}
+	if s.isStalemateLocked(lobby, users) {
+		s.endGameLocked(lobby, nil, endDraw)
+	}
+}
+
+func (s *GameService) isStalemateLocked(lobby *entity.Lobby, users []*entity.User) bool {
+	if len(lobby.Boneyard) > 0 || len(lobby.Table) == 0 {
+		return false
+	}
+	for _, user := range users {
+		if s.hasPlayablePiece(user.Hand, lobby.Table) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *GameService) moveToNextPlayer(lobby *entity.Lobby, users []*entity.User) {
@@ -478,17 +516,18 @@ func (s *GameService) toGameState(lobby *entity.Lobby, userID *uuid.UUID) dto.Ga
 		DrawnThisTurn:   lobby.DrawnThisTurn,
 		WinnerID:        lobby.WinnerID,
 		WinnerNickname:  lobby.WinnerNickname,
+		DrawPending:     lobby.DrawPending,
 		CanStart:        s.canStartLocked(lobby),
-		ShowWinnerModal: s.showWinnerModalLocked(lobby, userID),
+		ShowResultModal: s.showResultModalLocked(lobby, userID),
 	}
 }
 
 func (s *GameService) canStartLocked(lobby *entity.Lobby) bool {
-	return lobby.WinnerID == nil
+	return lobby.WinnerID == nil && !lobby.DrawPending
 }
 
-func (s *GameService) showWinnerModalLocked(lobby *entity.Lobby, userID *uuid.UUID) bool {
-	if lobby.WinnerID == nil || userID == nil {
+func (s *GameService) showResultModalLocked(lobby *entity.Lobby, userID *uuid.UUID) bool {
+	if (lobby.WinnerID == nil && !lobby.DrawPending) || userID == nil {
 		return false
 	}
 	if lobby.WinnerDismissedBy == nil {
@@ -497,14 +536,15 @@ func (s *GameService) showWinnerModalLocked(lobby *entity.Lobby, userID *uuid.UU
 	return !lobby.WinnerDismissedBy[*userID]
 }
 
-func (s *GameService) tryClearWinnerIfAllDismissed(lobby *entity.Lobby) {
-	if lobby.WinnerID == nil {
+func (s *GameService) tryClearPendingResultIfAllDismissed(lobby *entity.Lobby) {
+	if lobby.WinnerID == nil && !lobby.DrawPending {
 		return
 	}
 	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
 	if len(users) == 0 {
 		lobby.WinnerID = nil
 		lobby.WinnerNickname = ""
+		lobby.DrawPending = false
 		lobby.WinnerDismissedBy = nil
 		return
 	}
@@ -515,6 +555,7 @@ func (s *GameService) tryClearWinnerIfAllDismissed(lobby *entity.Lobby) {
 	}
 	lobby.WinnerID = nil
 	lobby.WinnerNickname = ""
+	lobby.DrawPending = false
 	lobby.WinnerDismissedBy = nil
 }
 

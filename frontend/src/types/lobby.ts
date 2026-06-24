@@ -26,8 +26,9 @@ export interface GameStatePayload {
   drawnThisTurn: boolean;
   winnerId: string | null;
   winnerNickname: string | null;
+  drawPending: boolean;
   canStart: boolean;
-  showWinnerModal: boolean;
+  showResultModal: boolean;
 }
 
 export type OutgoingMessageType =

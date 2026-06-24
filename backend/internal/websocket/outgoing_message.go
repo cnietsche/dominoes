@@ -54,8 +54,9 @@ func GameState(state dto.GameStateDto) OutgoingMessage {
 			"drawnThisTurn":    state.DrawnThisTurn,
 			"winnerId":         winnerID,
 			"winnerNickname":   winnerNickname,
+			"drawPending":      state.DrawPending,
 			"canStart":         state.CanStart,
-			"showWinnerModal":  state.ShowWinnerModal,
+			"showResultModal":  state.ShowResultModal,
 		},
 	}
 }

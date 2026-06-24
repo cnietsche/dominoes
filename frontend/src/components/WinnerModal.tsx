@@ -1,22 +1,22 @@
 interface WinnerModalProps {
-  winnerNickname: string;
+  message: string;
   onDismiss: () => void;
 }
 
-export function WinnerModal({ winnerNickname, onDismiss }: WinnerModalProps) {
+export function WinnerModal({ message, onDismiss }: WinnerModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="winner-title"
+      aria-labelledby="result-title"
     >
       <div className="w-full max-w-sm rounded-xl border border-slate-600 bg-slate-900 p-6 text-center shadow-2xl">
         <h2
-          id="winner-title"
+          id="result-title"
           className="text-2xl font-bold text-white"
         >
-          {winnerNickname} venceu!
+          {message}
         </h2>
         <button
           type="button"

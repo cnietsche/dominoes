@@ -86,8 +86,9 @@ function parseGameState(payload: Record<string, unknown>): GameStatePayload {
     drawnThisTurn: Boolean(payload.drawnThisTurn),
     winnerId,
     winnerNickname,
+    drawPending: Boolean(payload.drawPending),
     canStart: payload.canStart !== undefined ? Boolean(payload.canStart) : true,
-    showWinnerModal: Boolean(payload.showWinnerModal),
+    showResultModal: Boolean(payload.showResultModal),
   };
 }
 
@@ -108,7 +109,8 @@ export function useLobbyWebSocket() {
   const [winnerId, setWinnerId] = useState<string | null>(null);
   const [winnerNickname, setWinnerNickname] = useState<string | null>(null);
   const [canStart, setCanStart] = useState(true);
-  const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [drawPending, setDrawPending] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -133,8 +135,9 @@ export function useLobbyWebSocket() {
     setDrawnThisTurn(state.drawnThisTurn);
     setWinnerId(state.winnerId);
     setWinnerNickname(state.winnerNickname);
+    setDrawPending(state.drawPending);
     setCanStart(state.canStart);
-    setShowWinnerModal(state.showWinnerModal);
+    setShowResultModal(state.showResultModal);
   }, []);
 
   const handleIncomingMessage = useCallback(
@@ -234,7 +237,8 @@ export function useLobbyWebSocket() {
         setWinnerId(null);
         setWinnerNickname(null);
         setCanStart(true);
-        setShowWinnerModal(false);
+        setShowResultModal(false);
+        setDrawPending(false);
         pendingRef.current?.reject(new Error('Conexão encerrada.'));
         pendingRef.current = null;
       };
@@ -347,8 +351,9 @@ export function useLobbyWebSocket() {
     drawnThisTurn,
     winnerId,
     winnerNickname,
+    drawPending,
     canStart,
-    showWinnerModal,
+    showResultModal,
     join,
     leave,
     startGame,

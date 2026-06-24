@@ -15,9 +15,10 @@ type Lobby struct {
 	DrawnThisTurn    bool
 	Boneyard         []domain.PieceEnum
 	Table            []TablePiece
-	WinnerID           *uuid.UUID
-	WinnerNickname     string
-	WinnerDismissedBy  map[uuid.UUID]bool
+	WinnerID          *uuid.UUID
+	WinnerNickname    string
+	DrawPending       bool
+	WinnerDismissedBy map[uuid.UUID]bool
 }
 
 func NewLobby(size int) *Lobby {

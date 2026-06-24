@@ -34,9 +34,16 @@ function App() {
     dismissWinner,
     clearError,
     winnerNickname,
-    showWinnerModal,
+    drawPending,
+    showResultModal,
     canStart,
   } = useLobbyWebSocket();
+
+  const resultModalMessage = drawPending
+    ? 'Empate'
+    : winnerNickname
+      ? `${winnerNickname} venceu!`
+      : '';
 
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
   const [invalidFlash, setInvalidFlash] = useState<{
@@ -174,9 +181,9 @@ function App() {
         </footer>
       )}
 
-      {joined && showWinnerModal && winnerNickname && (
+      {joined && showResultModal && resultModalMessage && (
         <WinnerModal
-          winnerNickname={winnerNickname}
+          message={resultModalMessage}
           onDismiss={dismissWinner}
         />
       )}
