@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NicknameForm } from './components/NicknameForm';
 import { LobbyGrid } from './components/LobbyGrid';
-import { LobbyStatus } from './components/LobbyStatus';
+import { LobbyConnectionInfo, LobbyGameInfo } from './components/LobbyStatus';
 import { GameArea } from './components/GameArea';
 import { PlayerHand } from './components/PlayerHand';
 import { WinnerModal } from './components/WinnerModal';
@@ -106,37 +106,61 @@ function App() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-700 bg-slate-900/80 px-6 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl font-bold text-white">Lobby Online</h1>
-            <LobbyStatus
-              userCount={users.length}
-              size={size}
-              connected={connected}
-              joined={joined}
-              inProgress={inProgress}
-              busy={busy}
-              onEndGame={endGame}
-            />
+    <div className="flex min-h-dvh flex-col">
+      <header className="safe-area-top safe-area-x border-b border-slate-700 bg-slate-900/80 py-3 backdrop-blur sm:py-4">
+        <div className="mx-auto max-w-6xl sm:px-6">
+          <div
+            className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 ${
+              joined ? 'grid-rows-[auto_auto]' : 'grid-rows-[auto]'
+            }`}
+          >
+            <h1 className="col-start-1 row-start-1 min-w-0 self-start text-lg font-bold text-white sm:text-xl">
+              Lobby Online
+            </h1>
+
+            <div
+              className={`col-start-2 row-start-1 self-start ${joined ? 'row-span-2' : ''}`}
+            >
+              <LobbyConnectionInfo
+                connected={connected}
+                userCount={users.length}
+                size={size}
+              />
+            </div>
+
+            {joined && (
+              <div className="col-start-1 row-start-2 min-w-0 self-start">
+                <LobbyGameInfo
+                  joined={joined}
+                  inProgress={inProgress}
+                  busy={busy}
+                  onEndGame={endGame}
+                />
+              </div>
+            )}
           </div>
-          <LobbyGrid
-            users={users}
-            myUserId={myUserId}
-            currentPlayerId={currentPlayerId}
-            inProgress={inProgress}
-          />
+
+          {joined && (
+            <div className="mt-3 sm:mt-4">
+              <LobbyGrid
+                users={users}
+                myUserId={myUserId}
+                currentPlayerId={currentPlayerId}
+                inProgress={inProgress}
+                size={size}
+              />
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-6">
+      <main className="safe-area-x mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col sm:px-6">
         {!joined ? (
-          <div className="flex flex-1 flex-col items-center justify-center py-12">
-            <div className="w-full max-w-md space-y-6 text-center">
-              <div>
-                <h2 className="text-2xl font-semibold text-white">Entrar no lobby</h2>
-                <p className="mt-2 text-slate-400">
+          <div className="flex flex-1 flex-col items-center justify-center px-1 py-8 sm:py-12">
+            <div className="w-full max-w-md space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-white sm:text-2xl">Entrar no lobby</h2>
+                <p className="mt-2 text-sm text-slate-400 sm:text-base">
                   Informe um nickname para ocupar um slot na sala.
                 </p>
               </div>
@@ -170,7 +194,7 @@ function App() {
       </main>
 
       {joined && inProgress && (
-        <footer className="mt-auto">
+        <footer className="safe-area-bottom mt-auto">
           <PlayerHand
             pieces={hand}
             table={table}

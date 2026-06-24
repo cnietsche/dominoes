@@ -17,7 +17,7 @@ export function BoneyardIndicator({
       onClick={onDraw}
       disabled={disabled}
       className={[
-        'flex shrink-0 items-center gap-2 rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 transition',
+        'flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 transition',
         disabled
           ? 'cursor-not-allowed opacity-50'
           : 'cursor-pointer hover:border-slate-500 hover:bg-slate-700',

@@ -80,7 +80,7 @@ export function GameArea({
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-2 py-6 sm:py-8">
       <StartButton
         disabled={busy || userCount < 1 || !canStart}
         onClick={onStart}

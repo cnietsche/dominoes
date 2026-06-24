@@ -17,7 +17,7 @@ export function PlayerHand({
   onSelectPiece,
 }: PlayerHandProps) {
   return (
-    <div className="flex min-h-[100px] w-full items-center justify-center gap-2 overflow-x-auto border-t border-slate-700 bg-slate-900/80 px-6 py-4">
+    <div className="safe-area-x scrollbar-thin flex min-h-[5.5rem] w-full items-center justify-start gap-2 overflow-x-auto border-t border-slate-700 bg-slate-900/80 px-3 py-3 sm:min-h-[6.25rem] sm:justify-center sm:gap-2 sm:px-6 sm:py-4">
       {pieces.map((piece, index) => {
         const isPlayable = isMyTurn && canPlayPiece(piece, table);
         const isSelected = selectedPiece === piece;
@@ -25,12 +25,12 @@ export function PlayerHand({
         let interactionClass = 'cursor-default opacity-70';
         if (isMyTurn) {
           interactionClass = isPlayable
-            ? 'cursor-pointer'
+            ? 'cursor-pointer active:scale-95'
             : 'cursor-not-allowed opacity-40';
         }
 
         const className = [
-          'h-[88px] w-[44px] shrink-0 rounded',
+          'h-[4.5rem] w-[2.25rem] shrink-0 rounded sm:h-[5.5rem] sm:w-[2.75rem]',
           interactionClass,
           isSelected ? 'ring-2 ring-blue-400' : '',
         ]
@@ -53,7 +53,7 @@ export function PlayerHand({
               alt=""
               width={44}
               height={88}
-              className="pointer-events-none h-[88px] w-[44px]"
+              className="pointer-events-none h-full w-full object-contain"
             />
           </button>
         );

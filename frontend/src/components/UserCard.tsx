@@ -14,24 +14,23 @@ export function UserCard({
   handCount,
 }: UserCardProps) {
   const borderClass = isCurrentTurn
-    ? 'border-orange-400 ring-2 ring-orange-500'
+    ? 'border-orange-400 ring-1 ring-orange-500 sm:ring-2'
     : isCurrentUser
-      ? 'border-blue-400 ring-2 ring-blue-500'
+      ? 'border-blue-400 ring-1 ring-blue-500 sm:ring-2'
       : 'border-slate-600';
 
   return (
     <div
-      className={`min-w-[140px] rounded-xl border bg-slate-800 px-4 py-3 shadow-md ${borderClass}`}
+      className={`min-w-0 rounded-lg border bg-slate-800 px-1.5 py-1.5 shadow-md sm:rounded-xl sm:px-2.5 sm:py-2 ${borderClass}`}
     >
-      <p className="text-xs uppercase tracking-wide text-slate-400">
-        Jogador
+      <p className="truncate text-xs font-semibold text-white sm:text-sm">
+        {nickname}
         {inProgress && handCount != null && (
-          <span className="normal-case tabular-nums"> ({handCount})</span>
+          <span className="font-normal tabular-nums text-slate-400"> ({handCount})</span>
         )}
       </p>
-      <p className="truncate text-lg font-semibold text-white">{nickname}</p>
       {isCurrentUser && (
-        <p className="mt-1 text-xs text-blue-300">Você</p>
+        <p className="mt-0.5 truncate text-[0.6rem] text-blue-300 sm:text-xs">Você</p>
       )}
     </div>
   );

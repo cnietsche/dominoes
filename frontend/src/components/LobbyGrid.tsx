@@ -5,6 +5,7 @@ interface LobbyGridProps {
   myUserId: string | null;
   currentPlayerId: string | null;
   inProgress: boolean;
+  size: number;
 }
 
 export function LobbyGrid({
@@ -12,27 +13,29 @@ export function LobbyGrid({
   myUserId,
   currentPlayerId,
   inProgress,
+  size,
 }: LobbyGridProps) {
   return (
-    <div className="flex items-center gap-4">
-      <div className="min-w-0 flex-1">
-        {users.length === 0 ? (
-          <p className="text-sm text-slate-400">Nenhum jogador no lobby ainda.</p>
-        ) : (
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {users.map((user) => (
-              <UserCard
-                key={user.id}
-                nickname={user.nickname}
-                isCurrentUser={user.id === myUserId}
-                isCurrentTurn={inProgress && user.id === currentPlayerId}
-                inProgress={inProgress}
-                handCount={user.handCount}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="w-full min-w-0">
+      {users.length === 0 ? (
+        <p className="text-sm text-slate-400">Nenhum jogador no lobby ainda.</p>
+      ) : (
+        <div
+          className="grid w-full gap-1.5 sm:gap-2"
+          style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+        >
+          {users.map((user) => (
+            <UserCard
+              key={user.id}
+              nickname={user.nickname}
+              isCurrentUser={user.id === myUserId}
+              isCurrentTurn={inProgress && user.id === currentPlayerId}
+              inProgress={inProgress}
+              handCount={user.handCount}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

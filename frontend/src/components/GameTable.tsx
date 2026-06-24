@@ -180,7 +180,7 @@ export function GameTable({
 
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center">
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex items-center justify-center gap-3 px-2 sm:gap-6">
         {isSingleNonDouble ? (
           <SinglePieceEndpoints
             piece={first}
