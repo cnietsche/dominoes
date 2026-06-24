@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
-@keyframes flash-invalid {
+@keyframes flash-invalid-ring {
   0%,
   100% {
-    background-color: #2563eb;
+    box-shadow: 0 0 0 2px rgb(96 165 250);
   }
   50% {
-    background-color: #dc2626;
+    box-shadow: 0 0 0 2px rgb(220 38 38);
   }
 }
 
-.animate-flash-invalid {
-  animation: flash-invalid 0.25s ease-in-out 2;
+.animate-flash-invalid-ring {
+  animation: flash-invalid-ring 0.25s ease-in-out 2;
 }
 
 body {

@@ -114,30 +114,26 @@ function App() {
             myUserId={myUserId}
             currentPlayerId={currentPlayerId}
             inProgress={inProgress}
-            boneyardCount={boneyardCount}
-            hand={hand}
-            table={table}
-            drawnThisTurn={drawnThisTurn}
-            busy={busy}
-            onDrawFromBoneyard={drawFromBoneyard}
           />
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-12">
+      <main className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-6">
         {!joined ? (
-          <div className="w-full max-w-md space-y-6 text-center">
-            <div>
-              <h2 className="text-2xl font-semibold text-white">Entrar no lobby</h2>
-              <p className="mt-2 text-slate-400">
-                Informe um nickname para ocupar um slot na sala.
-              </p>
+          <div className="flex flex-1 flex-col items-center justify-center py-12">
+            <div className="w-full max-w-md space-y-6 text-center">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">Entrar no lobby</h2>
+                <p className="mt-2 text-slate-400">
+                  Informe um nickname para ocupar um slot na sala.
+                </p>
+              </div>
+              <NicknameForm
+                onSubmit={join}
+                disabled={busy}
+                error={error}
+              />
             </div>
-            <NicknameForm
-              onSubmit={join}
-              disabled={busy}
-              error={error}
-            />
           </div>
         ) : (
           <GameArea
@@ -150,8 +146,12 @@ function App() {
             busy={busy}
             userCount={users.length}
             error={error}
+            boneyardCount={boneyardCount}
+            hand={hand}
+            drawnThisTurn={drawnThisTurn}
             onStart={startGame}
             onPlay={handlePlay}
+            onDrawFromBoneyard={drawFromBoneyard}
           />
         )}
       </main>

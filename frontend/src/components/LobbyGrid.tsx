@@ -1,19 +1,10 @@
 import { UserCard } from './UserCard';
-import { BoneyardIndicator } from './BoneyardIndicator';
-import type { TablePiece } from '../types/domino';
-import { hasPlayablePiece } from '../utils/dominoRules';
 
 interface LobbyGridProps {
   users: { id: string; nickname: string; handCount?: number | null }[];
   myUserId: string | null;
   currentPlayerId: string | null;
   inProgress: boolean;
-  boneyardCount: number;
-  hand: string[];
-  table: TablePiece[];
-  drawnThisTurn: boolean;
-  busy: boolean;
-  onDrawFromBoneyard: () => void;
 }
 
 export function LobbyGrid({
@@ -21,22 +12,7 @@ export function LobbyGrid({
   myUserId,
   currentPlayerId,
   inProgress,
-  boneyardCount,
-  hand,
-  table,
-  drawnThisTurn,
-  busy,
-  onDrawFromBoneyard,
 }: LobbyGridProps) {
-  const isMyTurn = myUserId !== null && myUserId === currentPlayerId;
-  const canPlay = hasPlayablePiece(hand, table);
-  const canDraw =
-    isMyTurn &&
-    boneyardCount > 0 &&
-    !drawnThisTurn &&
-    !canPlay &&
-    !busy;
-
   return (
     <div className="flex items-center gap-4">
       <div className="min-w-0 flex-1">
@@ -57,15 +33,6 @@ export function LobbyGrid({
           </div>
         )}
       </div>
-      {inProgress && (
-        <div className="shrink-0 self-start">
-          <BoneyardIndicator
-            count={boneyardCount}
-            disabled={!canDraw}
-            onDraw={onDrawFromBoneyard}
-          />
-        </div>
-      )}
     </div>
   );
 }

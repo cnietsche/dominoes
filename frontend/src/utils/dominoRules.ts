@@ -6,6 +6,11 @@ function parsePips(code: string): [number, number] {
   return [left, right];
 }
 
+export function isDoublePiece(code: string): boolean {
+  const [left, right] = parsePips(code);
+  return left === right;
+}
+
 function exposedLeftValue(tablePiece: TablePiece): number {
   const [left, right] = parsePips(tablePiece.code);
   switch (tablePiece.rotation) {
