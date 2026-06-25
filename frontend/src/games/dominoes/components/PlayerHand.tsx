@@ -108,7 +108,7 @@ export function PlayerHand({
               onClick={() => onSelectPiece(piece)}
               className={className}
               style={{ width: pieceWidth, height: pieceHeight }}
-              aria-label={`Peça ${piece}${isPlayable ? '' : ' (não jogável)'}`}
+              aria-label={`Piece ${piece}${isPlayable ? '' : ' (not playable)'}`}
               aria-pressed={isSelected}
               aria-disabled={!isPlayable}
             >

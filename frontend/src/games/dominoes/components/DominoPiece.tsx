@@ -37,7 +37,7 @@ export function DominoPiece({ code, rotation, scale = 1 }: DominoPieceProps) {
     >
       <img
         src={`/dominoes/${code}.png`}
-        alt={`Peça ${code}`}
+        alt={`Piece ${code}`}
         draggable={false}
         className={`shrink-0 ${rotateClass}`}
         style={{ width: imgWidth, height: imgHeight }}

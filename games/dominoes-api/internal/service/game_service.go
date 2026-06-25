@@ -52,7 +52,7 @@ func (s *GameService) StartGame() (dto.GameStateDto, error) {
 
 	users := s.lobbyRepository.FindByLobbyOrderByJoinedAtAsc(lobby)
 	if len(users) == 0 {
-		return dto.GameStateDto{}, fmt.Errorf("Não há jogadores no lobby.")
+		return dto.GameStateDto{}, fmt.Errorf("There are no players in the lobby.")
 	}
 
 	deck := slices.Clone(domain.FullSet())
@@ -116,7 +116,7 @@ func (s *GameService) PlayPiece(userID uuid.UUID, piece domain.PieceEnum, side d
 
 	user, ok := s.lobbyRepository.FindUserByID(userID)
 	if !ok {
-		return dto.GameStateDto{}, fmt.Errorf("Jogador não encontrado.")
+		return dto.GameStateDto{}, fmt.Errorf("Player not found.")
 	}
 
 	if !containsPiece(user.Hand, piece) {
@@ -173,7 +173,7 @@ func (s *GameService) DrawFromBoneyard(userID uuid.UUID) (dto.GameStateDto, erro
 
 	user, ok := s.lobbyRepository.FindUserByID(userID)
 	if !ok {
-		return dto.GameStateDto{}, fmt.Errorf("Jogador não encontrado.")
+		return dto.GameStateDto{}, fmt.Errorf("Player not found.")
 	}
 
 	if s.hasPlayablePiece(user.Hand, lobby.Table) {
@@ -483,7 +483,7 @@ func (s *GameService) moveToNextPlayer(lobby *entity.Lobby, users []*entity.User
 func (s *GameService) getLobbyLocked() (*entity.Lobby, error) {
 	lobby, ok := s.lobbyRepository.FindFirstByOrderByIDAsc()
 	if !ok {
-		return nil, fmt.Errorf("Lobby não encontrado.")
+		return nil, fmt.Errorf("Lobby not found.")
 	}
 	return lobby, nil
 }

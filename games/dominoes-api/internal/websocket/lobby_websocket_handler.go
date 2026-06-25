@@ -72,7 +72,7 @@ func (h *LobbyWebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) 
 func (h *LobbyWebSocketHandler) handleTextMessage(session *Session, message []byte) {
 	incoming, err := ParseIncomingMessage(message)
 	if err != nil {
-		h.sendToSession(session, ErrorMessage("Tipo de mensagem desconhecido."))
+		h.sendToSession(session, ErrorMessage("Unknown message type."))
 		return
 	}
 
@@ -92,17 +92,17 @@ func (h *LobbyWebSocketHandler) handleTextMessage(session *Session, message []by
 	case "DISMISS_WINNER":
 		h.handleDismissWinner(session)
 	default:
-		h.sendToSession(session, ErrorMessage("Tipo de mensagem desconhecido."))
+		h.sendToSession(session, ErrorMessage("Unknown message type."))
 	}
 }
 
 func (h *LobbyWebSocketHandler) handleJoin(session *Session, nickname string) {
 	if strings.TrimSpace(nickname) == "" {
-		h.sendToSession(session, ErrorMessage("Nickname é obrigatório."))
+		h.sendToSession(session, ErrorMessage("Nickname is required."))
 		return
 	}
 	if _, ok := h.sessionRegistry.FindUserID(session.ID); ok {
-		h.sendToSession(session, ErrorMessage("Você já está no lobby."))
+		h.sendToSession(session, ErrorMessage("You are already in the lobby."))
 		return
 	}
 
@@ -132,7 +132,7 @@ func (h *LobbyWebSocketHandler) handleLeave(session *Session) {
 
 func (h *LobbyWebSocketHandler) handleStartGame(session *Session) {
 	if _, ok := h.sessionRegistry.FindUserID(session.ID); !ok {
-		h.sendToSession(session, ErrorMessage("Você precisa estar no lobby para iniciar a partida."))
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to start the game."))
 		return
 	}
 
@@ -150,7 +150,7 @@ func (h *LobbyWebSocketHandler) handleStartGame(session *Session) {
 
 func (h *LobbyWebSocketHandler) handleEndGame(session *Session) {
 	if _, ok := h.sessionRegistry.FindUserID(session.ID); !ok {
-		h.sendToSession(session, ErrorMessage("Você precisa estar no lobby para finalizar a partida."))
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to end the game."))
 		return
 	}
 
@@ -169,27 +169,27 @@ func (h *LobbyWebSocketHandler) handleEndGame(session *Session) {
 func (h *LobbyWebSocketHandler) handlePlayPiece(session *Session, pieceCode, sideCode string) {
 	userID, ok := h.sessionRegistry.FindUserID(session.ID)
 	if !ok {
-		h.sendToSession(session, ErrorMessage("Você precisa estar no lobby para jogar."))
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to play."))
 		return
 	}
 	if strings.TrimSpace(pieceCode) == "" {
-		h.sendToSession(session, ErrorMessage("Peça é obrigatória."))
+		h.sendToSession(session, ErrorMessage("Piece is required."))
 		return
 	}
 	if strings.TrimSpace(sideCode) == "" {
-		h.sendToSession(session, ErrorMessage("Lado da mesa é obrigatório."))
+		h.sendToSession(session, ErrorMessage("Table side is required."))
 		return
 	}
 
 	piece, err := domain.PieceEnumFromCode(pieceCode)
 	if err != nil {
-		h.sendToSession(session, ErrorMessage("Lado da mesa inválido."))
+		h.sendToSession(session, ErrorMessage("Invalid piece."))
 		return
 	}
 
 	side, err := domain.TableSideFromString(sideCode)
 	if err != nil {
-		h.sendToSession(session, ErrorMessage("Lado da mesa inválido."))
+		h.sendToSession(session, ErrorMessage("Invalid table side."))
 		return
 	}
 
@@ -208,7 +208,7 @@ func (h *LobbyWebSocketHandler) handlePlayPiece(session *Session, pieceCode, sid
 func (h *LobbyWebSocketHandler) handleDrawFromBoneyard(session *Session) {
 	userID, ok := h.sessionRegistry.FindUserID(session.ID)
 	if !ok {
-		h.sendToSession(session, ErrorMessage("Você precisa estar no lobby para comprar do monte."))
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to draw from the boneyard."))
 		return
 	}
 

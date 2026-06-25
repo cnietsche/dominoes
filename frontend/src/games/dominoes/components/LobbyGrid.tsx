@@ -18,7 +18,7 @@ export function LobbyGrid({
   return (
     <div className="w-full min-w-0">
       {users.length === 0 ? (
-        <p className="text-sm text-slate-400">Nenhum jogador no lobby ainda.</p>
+        <p className="text-sm text-slate-400">No players in the lobby yet.</p>
       ) : (
         <div
           className="grid w-full gap-1.5 sm:gap-2"

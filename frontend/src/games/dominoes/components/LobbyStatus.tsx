@@ -24,11 +24,11 @@ export function LobbyConnectionInfo({
         }`}
       >
         <span className={`h-2 w-2 shrink-0 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400'}`} />
-        {connected ? 'Conectado' : 'Desconectado'}
+        {connected ? 'Connected' : 'Disconnected'}
       </span>
 
       <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-slate-800 px-3 text-xs tabular-nums">
-        {userCount} / {size} jogadores
+        {userCount} / {size} players
       </span>
     </div>
   );
@@ -47,7 +47,7 @@ export function LobbyGameInfo({
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
       <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-blue-500/20 px-3 text-xs text-blue-300">
-        {inProgress ? 'Partida em andamento' : 'No lobby'}
+        {inProgress ? 'Game in progress' : 'In lobby'}
       </span>
 
       {inProgress && (
@@ -57,7 +57,7 @@ export function LobbyGameInfo({
           disabled={busy}
           className="inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-lg bg-red-600 px-3 text-xs font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Finalizar partida
+          End game
         </button>
       )}
     </div>

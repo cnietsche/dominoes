@@ -25,11 +25,11 @@ export function BoneyardIndicator({
       title={
         disabled
           ? count === 0
-            ? 'Monte vazio'
-            : 'Indisponível (jogue, compre só sem peças jogáveis ou já comprou)'
-          : 'Comprar uma peça do monte'
+            ? 'Boneyard empty'
+            : 'Unavailable (play a piece, draw only with no playable pieces, or already drew)'
+          : 'Draw a piece from the boneyard'
       }
-      aria-label={`Comprar do monte. Peças restantes: ${count}`}
+      aria-label={`Draw from boneyard. Pieces remaining: ${count}`}
     >
       <BoneyardIcon className="h-10 w-10" />
       <span className="min-w-[2ch] text-2xl font-bold tabular-nums text-white">

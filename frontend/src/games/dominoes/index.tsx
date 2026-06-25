@@ -43,9 +43,9 @@ function DominoesLobby({ displayName, onExit }: GameModuleProps) {
   const joinAttemptedRef = useRef(false);
 
   const resultModalMessage = drawPending
-    ? 'Empate'
+    ? 'Draw'
     : winnerNickname
-      ? `${winnerNickname} venceu!`
+      ? `${winnerNickname} wins!`
       : '';
 
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
@@ -146,7 +146,7 @@ function DominoesLobby({ displayName, onExit }: GameModuleProps) {
               disabled={busy}
               className="col-start-3 row-start-1 self-start rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 active:bg-slate-900 disabled:opacity-50"
             >
-              Voltar
+              Back
             </button>
 
             <div
@@ -189,7 +189,7 @@ function DominoesLobby({ displayName, onExit }: GameModuleProps) {
         {!joined ? (
           <div className="flex flex-1 flex-col items-center justify-center px-1 py-8 sm:py-12">
             <p className="text-slate-400">
-              {error ?? (busy ? 'Entrando no lobby...' : 'Conectando...')}
+              {error ?? (busy ? 'Joining lobby...' : 'Connecting...')}
             </p>
           </div>
         ) : (

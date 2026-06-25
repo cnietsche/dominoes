@@ -159,7 +159,7 @@ export function useLobbyWebSocket() {
       }
 
       if (message.type === 'ERROR' && !pending) {
-        setError(String(message.payload.message ?? 'Erro desconhecido.'));
+        setError(String(message.payload.message ?? 'Unknown error.'));
       }
     },
     [applyLobbyState, applyGameState],
@@ -170,7 +170,7 @@ export function useLobbyWebSocket() {
       const run = async () => {
         const ws = wsRef.current;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-          throw new Error('WebSocket não está conectado.');
+          throw new Error('WebSocket is not connected.');
         }
 
         setBusy(true);
@@ -185,7 +185,7 @@ export function useLobbyWebSocket() {
         try {
           const response = await responsePromise;
           if (response.type === 'ERROR') {
-            const message = String(response.payload.message ?? 'Erro desconhecido.');
+            const message = String(response.payload.message ?? 'Unknown error.');
             setError(message);
             throw new Error(message);
           }
@@ -221,7 +221,7 @@ export function useLobbyWebSocket() {
 
       ws.onerror = () => {
         setConnected(false);
-        reject(new Error('Falha ao conectar ao lobby.'));
+        reject(new Error('Failed to connect to the lobby.'));
       };
 
       ws.onclose = () => {
@@ -240,7 +240,7 @@ export function useLobbyWebSocket() {
         setCanStart(true);
         setShowResultModal(false);
         setDrawPending(false);
-        pendingRef.current?.reject(new Error('Conexão encerrada.'));
+        pendingRef.current?.reject(new Error('Connection closed.'));
         pendingRef.current = null;
       };
 

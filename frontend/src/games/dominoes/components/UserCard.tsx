@@ -30,7 +30,7 @@ export function UserCard({
         )}
       </p>
       {isCurrentUser && (
-        <p className="mt-0.5 truncate text-[0.6rem] text-blue-300 sm:text-xs">Você</p>
+        <p className="mt-0.5 truncate text-[0.6rem] text-blue-300 sm:text-xs">You</p>
       )}
     </div>
   );
