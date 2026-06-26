@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as gameApi from '../api/gameApi';
+import { usePresenceWebSocket } from '../hooks/usePresenceWebSocket';
 import type { GameDto } from '../types/game';
 
 interface GameLibraryPageProps {
@@ -14,6 +15,7 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
   const [games, setGames] = useState<GameDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { libraryCount, gameLobbies, total, connected } = usePresenceWebSocket(token);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,12 +46,25 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="safe-area-x safe-area-top relative h-[100px] shrink-0 border-b border-slate-700">
-        <div className="flex h-full flex-col justify-center pr-28">
+      <header className="safe-area-x safe-area-top relative shrink-0 border-b border-slate-700 py-4">
+        <div className="flex flex-col justify-center pr-28">
           <h1 className="text-xl font-bold text-white sm:text-2xl">Game library</h1>
-          <span className="mt-1 inline-flex w-fit rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-sm text-slate-300">
-            {nickname}
-          </span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            <span className="inline-flex w-fit rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-sm text-slate-300">
+              {nickname}
+            </span>
+            {connected && (
+              <>
+                <span className="inline-flex w-fit rounded-full bg-slate-800 px-3 py-1 text-sm tabular-nums text-slate-300">
+                  {libraryCount} available
+                </span>
+                <span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-1 text-sm tabular-nums text-emerald-300">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+                  {total} online
+                </span>
+              </>
+            )}
+          </div>
         </div>
         <button
           type="button"
@@ -67,26 +82,41 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
 
         {!loading && !error && (
           <ul className="mx-auto flex w-full max-w-md flex-col gap-4 pb-4">
-            {games.map((game) => (
-              <li key={game.id}>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/games/${game.id}`)}
-                  className="flex h-16 w-full items-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/80 text-left transition hover:border-slate-500 hover:bg-slate-800 active:bg-slate-900"
-                >
-                  <div className="flex h-full w-1/5 shrink-0 items-center justify-center px-2">
-                    <img
-                      src={game.icon}
-                      alt=""
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                  <span className="w-4/5 truncate px-4 text-lg font-semibold text-white">
-                    {game.name}
-                  </span>
-                </button>
-              </li>
-            ))}
+            {games.map((game) => {
+              const lobby = gameLobbies[game.id];
+              const lobbyCount = lobby?.count ?? 0;
+              const lobbyMax = lobby?.max ?? 0;
+              const lobbyMin = lobby?.min ?? 0;
+
+              return (
+                <li key={game.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/games/${game.id}`)}
+                    className="flex h-16 w-full items-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/80 text-left transition hover:border-slate-500 hover:bg-slate-800 active:bg-slate-900"
+                  >
+                    <div className="flex h-full w-1/5 shrink-0 items-center justify-center px-2">
+                      <img
+                        src={game.icon}
+                        alt=""
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <span className="min-w-0 flex-1 truncate px-4 text-lg font-semibold text-white">
+                      {game.name}
+                    </span>
+                    <div className="mr-4 flex shrink-0 items-center gap-1.5">
+                      <span className="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs tabular-nums text-slate-300">
+                        min: {lobbyMin}
+                      </span>
+                      <span className="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs tabular-nums text-slate-300">
+                        Lobby {lobbyCount}/{lobbyMax}
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </main>

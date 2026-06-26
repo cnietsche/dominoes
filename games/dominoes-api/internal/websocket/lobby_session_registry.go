@@ -68,6 +68,12 @@ func (r *LobbySessionRegistry) GetAllSessions() []*Session {
 	return result
 }
 
+func (r *LobbySessionRegistry) CountOnlinePlayers() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.sessionToUser)
+}
+
 func (s *Session) Lock() {
 	s.mu.Lock()
 }

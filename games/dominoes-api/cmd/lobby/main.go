@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/dominoes/dominoes-api/internal/config"
+	"github.com/dominoes/dominoes-api/internal/handler"
 	"github.com/dominoes/dominoes-api/internal/repository"
 	"github.com/dominoes/dominoes-api/internal/service"
 	"github.com/dominoes/dominoes-api/internal/websocket"
@@ -17,9 +18,11 @@ func main() {
 	gameService := service.NewGameService(lobbyRepository)
 	lobbyService := service.NewLobbyService(lobbyRepository, gameService, cfg.LobbySize)
 	sessionRegistry := websocket.NewLobbySessionRegistry()
-	handler := websocket.NewLobbyWebSocketHandler(lobbyService, gameService, sessionRegistry)
+	wsHandler := websocket.NewLobbyWebSocketHandler(lobbyService, gameService, sessionRegistry)
+	statsHandler := handler.NewStatsHandler(sessionRegistry, cfg.LobbySize, cfg.MinPlayers)
 
-	http.HandleFunc("/ws/lobby", handler.ServeWS)
+	http.HandleFunc("/ws/lobby", wsHandler.ServeWS)
+	http.HandleFunc("/stats/online", statsHandler.ServeOnlineStats)
 
 	addr := ":" + cfg.Port
 	log.Printf("Lobby server listening on %s", addr)

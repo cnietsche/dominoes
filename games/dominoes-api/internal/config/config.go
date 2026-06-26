@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	Port      string
-	LobbySize int
+	Port       string
+	LobbySize  int
+	MinPlayers int
 }
 
 func Load() Config {
@@ -17,8 +18,17 @@ func Load() Config {
 			lobbySize = n
 		}
 	}
+
+	minPlayers := 1
+	if v := os.Getenv("LOBBY_MIN_PLAYERS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			minPlayers = n
+		}
+	}
+
 	return Config{
-		Port:      "8081",
-		LobbySize: lobbySize,
+		Port:       "8081",
+		LobbySize:  lobbySize,
+		MinPlayers: minPlayers,
 	}
 }
