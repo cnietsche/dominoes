@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { PresenceProvider } from './context/PresenceContext';
 import { useAuth } from './hooks/useAuth';
 import { GameLibraryPage } from './pages/GameLibraryPage';
 import { GameRoute } from './pages/GameRoute';
@@ -69,16 +70,18 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <GameLibraryPage nickname={player.name} token={token} onLogoff={logout} />
-        }
-      />
-      <Route path="/games/:gameId" element={<GameRoute player={player} />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <PresenceProvider token={token}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <GameLibraryPage nickname={player.name} token={token} onLogoff={logout} />
+          }
+        />
+        <Route path="/games/:gameId" element={<GameRoute player={player} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </PresenceProvider>
   );
 }
 

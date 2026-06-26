@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+export type PresenceLocation = 'LIBRARY' | 'GAME';
+
 export interface GameLobbyInfo {
   count: number;
   max: number;
@@ -66,12 +68,30 @@ function parsePresenceStats(payload: unknown): PresenceStats | null {
   };
 }
 
-export function usePresenceWebSocket(token: string) {
+export function usePresenceWebSocket(token: string, location: PresenceLocation) {
   const [stats, setStats] = useState<PresenceStats>(INITIAL_STATS);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const backoffRef = useRef(1_000);
+  const locationRef = useRef(location);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
+  const sendLocation = (ws: WebSocket, nextLocation: PresenceLocation) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'LOCATION', location: nextLocation }));
+    }
+  };
+
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (ws) {
+      sendLocation(ws, location);
+    }
+  }, [location]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +130,7 @@ export function usePresenceWebSocket(token: string) {
         }
         setConnected(true);
         backoffRef.current = 1_000;
+        sendLocation(ws, locationRef.current);
       };
 
       ws.onmessage = (event) => {

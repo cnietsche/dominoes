@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as gameApi from '../api/gameApi';
-import { usePresenceWebSocket } from '../hooks/usePresenceWebSocket';
+import { usePresence } from '../context/PresenceContext';
 import type { GameDto } from '../types/game';
 
 interface GameLibraryPageProps {
@@ -15,7 +15,7 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
   const [games, setGames] = useState<GameDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { libraryCount, gameLobbies, total, connected } = usePresenceWebSocket(token);
+  const { libraryCount, gameLobbies, total, connected } = usePresence();
 
   useEffect(() => {
     let cancelled = false;

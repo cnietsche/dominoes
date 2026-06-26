@@ -30,8 +30,9 @@ public class PresenceBroadcastService {
 
     public void broadcast() {
         Map<String, GameLobbyInfoDto> gameLobbies = gameStatsClient.fetchGameLobbies();
+        int lobbyCount = gameLobbies.values().stream().mapToInt(GameLobbyInfoDto::count).sum();
         int libraryCount = registry.countLibraryPlayers();
-        int total = libraryCount + gameLobbies.values().stream().mapToInt(GameLobbyInfoDto::count).sum();
+        int total = libraryCount + lobbyCount;
 
         Map<String, Object> gameLobbiesPayload = new LinkedHashMap<>();
         for (Map.Entry<String, GameLobbyInfoDto> entry : gameLobbies.entrySet()) {
