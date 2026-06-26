@@ -21,4 +21,4 @@ jwt:
 
 games:
   dominoes:
-    stats-url: ${DOMINOES_STATS_URL:http://divinoes-api:8081/stats/online}
+    stats-url: ${DOMINOES_STATS_URL:http://dominoes-api:8081/stats/online}
