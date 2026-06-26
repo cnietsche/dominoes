@@ -6,6 +6,7 @@ import (
 
 	"github.com/dominoes/dominoes-api/internal/config"
 	"github.com/dominoes/dominoes-api/internal/handler"
+	"github.com/dominoes/dominoes-api/internal/presence"
 	"github.com/dominoes/dominoes-api/internal/repository"
 	"github.com/dominoes/dominoes-api/internal/service"
 	"github.com/dominoes/dominoes-api/internal/websocket"
@@ -18,7 +19,8 @@ func main() {
 	gameService := service.NewGameService(lobbyRepository)
 	lobbyService := service.NewLobbyService(lobbyRepository, gameService, cfg.LobbySize)
 	sessionRegistry := websocket.NewLobbySessionRegistry()
-	wsHandler := websocket.NewLobbyWebSocketHandler(lobbyService, gameService, sessionRegistry)
+	presenceRefresh := presence.NewRefreshClient(cfg.PresenceRefreshURL, cfg.InternalAPISecret)
+	wsHandler := websocket.NewLobbyWebSocketHandler(lobbyService, gameService, sessionRegistry, presenceRefresh)
 	statsHandler := handler.NewStatsHandler(sessionRegistry, cfg.LobbySize, cfg.MinPlayers)
 
 	http.HandleFunc("/ws/lobby", wsHandler.ServeWS)

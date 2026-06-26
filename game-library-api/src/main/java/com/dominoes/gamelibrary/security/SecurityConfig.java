@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/delete", "/icons/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/delete").permitAll()
                         .requestMatchers("/ws/presence").permitAll()
+                        .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

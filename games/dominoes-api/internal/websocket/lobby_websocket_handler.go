@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dominoes/dominoes-api/internal/domain"
+	"github.com/dominoes/dominoes-api/internal/presence"
 	"github.com/dominoes/dominoes-api/internal/service"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -17,20 +18,23 @@ var upgrader = websocket.Upgrader{
 }
 
 type LobbyWebSocketHandler struct {
-	lobbyService    *service.LobbyService
-	gameService     *service.GameService
-	sessionRegistry *LobbySessionRegistry
+	lobbyService     *service.LobbyService
+	gameService      *service.GameService
+	sessionRegistry  *LobbySessionRegistry
+	presenceRefresh  *presence.RefreshClient
 }
 
 func NewLobbyWebSocketHandler(
 	lobbyService *service.LobbyService,
 	gameService *service.GameService,
 	sessionRegistry *LobbySessionRegistry,
+	presenceRefresh *presence.RefreshClient,
 ) *LobbyWebSocketHandler {
 	return &LobbyWebSocketHandler{
 		lobbyService:    lobbyService,
 		gameService:     gameService,
 		sessionRegistry: sessionRegistry,
+		presenceRefresh: presenceRefresh,
 	}
 }
 
@@ -46,7 +50,9 @@ func (h *LobbyWebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) 
 	log.Printf("WebSocket connected: %s", session.ID)
 
 	defer func() {
+		hadLobbyUser := false
 		if userID, ok := h.sessionRegistry.FindUserID(session.ID); ok {
+			hadLobbyUser = true
 			h.lobbyService.LeaveLobby(userID)
 			h.broadcastLobbyState()
 			h.broadcastGameState()
@@ -55,6 +61,9 @@ func (h *LobbyWebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) 
 		h.sessionRegistry.UnregisterSession(session.ID)
 		conn.Close()
 		log.Printf("WebSocket disconnected: %s", session.ID)
+		if hadLobbyUser {
+			h.notifyPresenceRefresh()
+		}
 	}()
 
 	for {
@@ -115,19 +124,25 @@ func (h *LobbyWebSocketHandler) handleJoin(session *Session, nickname string) {
 	h.sessionRegistry.BindUser(session.ID, user.ID)
 	h.sendToSession(session, JoinAck(user.ID))
 	h.broadcastLobbyState()
+	h.notifyPresenceRefresh()
 	log.Printf("User %s joined lobby", user.ID)
 }
 
 func (h *LobbyWebSocketHandler) handleLeave(session *Session) {
+	leftLobby := false
 	if userID, ok := h.sessionRegistry.FindUserID(session.ID); ok {
 		h.lobbyService.LeaveLobby(userID)
 		h.sessionRegistry.UnbindUser(session.ID)
+		leftLobby = true
 		log.Printf("User %s left lobby", userID)
 	}
 	h.broadcastLobbyState()
 	h.broadcastGameState()
 	h.sendToSession(session, LobbyState(h.lobbyService.GetLobbyState()))
 	h.sendToSession(session, GameState(h.gameService.GetGameStateForUser(nil)))
+	if leftLobby {
+		h.notifyPresenceRefresh()
+	}
 }
 
 func (h *LobbyWebSocketHandler) handleStartGame(session *Session) {
@@ -259,5 +274,11 @@ func (h *LobbyWebSocketHandler) sendToSession(session *Session, message Outgoing
 	}
 	if err := session.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
 		log.Printf("Failed to send message to session %s: %v", session.ID, err)
+	}
+}
+
+func (h *LobbyWebSocketHandler) notifyPresenceRefresh() {
+	if h.presenceRefresh != nil {
+		h.presenceRefresh.NotifyLobbyChanged()
 	}
 }

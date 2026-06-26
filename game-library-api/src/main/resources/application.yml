@@ -19,6 +19,9 @@ jwt:
   secret: ${JWT_SECRET:dev-secret-change-in-production-must-be-at-least-32-chars}
   expiration-ms: ${JWT_EXPIRATION:86400000}
 
+internal:
+  api-secret: ${INTERNAL_API_SECRET:dev-internal-secret}
+
 games:
   dominoes:
     stats-url: ${DOMINOES_STATS_URL:http://dominoes-api:8081/stats/online}

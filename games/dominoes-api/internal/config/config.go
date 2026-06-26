@@ -6,9 +6,11 @@ import (
 )
 
 type Config struct {
-	Port       string
-	LobbySize  int
-	MinPlayers int
+	Port               string
+	LobbySize          int
+	MinPlayers         int
+	PresenceRefreshURL string
+	InternalAPISecret  string
 }
 
 func Load() Config {
@@ -27,8 +29,10 @@ func Load() Config {
 	}
 
 	return Config{
-		Port:       "8081",
-		LobbySize:  lobbySize,
-		MinPlayers: minPlayers,
+		Port:               "8081",
+		LobbySize:          lobbySize,
+		MinPlayers:         minPlayers,
+		PresenceRefreshURL: os.Getenv("PRESENCE_REFRESH_URL"),
+		InternalAPISecret:  os.Getenv("INTERNAL_API_SECRET"),
 	}
 }

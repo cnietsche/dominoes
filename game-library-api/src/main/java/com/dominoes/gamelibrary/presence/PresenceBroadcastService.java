@@ -3,7 +3,6 @@ package com.dominoes.gamelibrary.presence;
 import com.dominoes.gamelibrary.dto.GameLobbyInfoDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -66,13 +65,6 @@ public class PresenceBroadcastService {
                     // session will be cleaned up on close
                 }
             }
-        }
-    }
-
-    @Scheduled(fixedRate = 5_000)
-    public void scheduledBroadcast() {
-        if (!registry.getAllSessions().isEmpty()) {
-            broadcast();
         }
     }
 }
