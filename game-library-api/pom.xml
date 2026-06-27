@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.dominoes</groupId>
+    <groupId>com.nitx</groupId>
     <artifactId>game-library-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>game-library-api</name>
