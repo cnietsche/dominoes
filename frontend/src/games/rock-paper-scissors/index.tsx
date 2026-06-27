@@ -1,14 +1,46 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { LobbyGrid } from './components/LobbyGrid';
 import { LobbyConnectionInfo, LobbyGameInfo } from './components/LobbyStatus';
+import { GameArea } from './components/GameArea';
+import { WinnerModal } from './components/WinnerModal';
 import { useLobbyWebSocket } from './hooks/useLobbyWebSocket';
 import type { GameModule, GameModuleProps } from '../types';
+import type { GameChoice } from './types/lobby';
 
 function RockPaperScissorsLobby({ displayName, onExit }: GameModuleProps) {
-  const { users, size, myUserId, error, connected, joined, busy, join, leave } =
-    useLobbyWebSocket();
+  const {
+    users,
+    size,
+    myUserId,
+    error,
+    connected,
+    joined,
+    busy,
+    inProgress,
+    phase,
+    myChoice,
+    opponentChoice,
+    countdownSeconds,
+    winnerNickname,
+    drawPending,
+    showResultModal,
+    canStart,
+    join,
+    leave,
+    startGame,
+    submitChoice,
+    continueToResult,
+    continuedToResult,
+    dismissWinner,
+  } = useLobbyWebSocket();
 
   const joinAttemptedRef = useRef(false);
+
+  const resultModalMessage = drawPending
+    ? 'Draw'
+    : winnerNickname
+      ? `${winnerNickname} wins!`
+      : '';
 
   useEffect(() => {
     if (joined || joinAttemptedRef.current || !displayName) {
@@ -28,6 +60,21 @@ function RockPaperScissorsLobby({ displayName, onExit }: GameModuleProps) {
       onExit();
     }
   }, [leave, onExit]);
+
+  const handleStart = useCallback(() => {
+    void startGame();
+  }, [startGame]);
+
+  const handleSelectChoice = useCallback(
+    (choice: GameChoice) => {
+      void submitChoice(choice);
+    },
+    [submitChoice],
+  );
+
+  const handleNext = useCallback(() => {
+    void continueToResult();
+  }, [continueToResult]);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -84,11 +131,27 @@ function RockPaperScissorsLobby({ displayName, onExit }: GameModuleProps) {
             </p>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center px-1 py-8 sm:py-12">
-            <p className="text-slate-400">Game coming soon.</p>
-          </div>
+          <GameArea
+            inProgress={inProgress}
+            phase={phase}
+            myChoice={myChoice}
+            opponentChoice={opponentChoice}
+            countdownSeconds={countdownSeconds}
+            busy={busy}
+            userCount={users.length}
+            canStart={canStart}
+            error={error}
+            onStart={handleStart}
+            onSelectChoice={handleSelectChoice}
+            onNext={handleNext}
+            continuedToResult={continuedToResult}
+          />
         )}
       </main>
+
+      {joined && showResultModal && resultModalMessage && (
+        <WinnerModal message={resultModalMessage} onDismiss={dismissWinner} />
+      )}
     </div>
   );
 }

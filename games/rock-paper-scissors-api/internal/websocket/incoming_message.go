@@ -7,6 +7,7 @@ import (
 type IncomingMessage struct {
 	Type     string `json:"type"`
 	Nickname string `json:"nickname"`
+	Choice   string `json:"choice"`
 }
 
 func ParseIncomingMessage(data []byte) (IncomingMessage, error) {

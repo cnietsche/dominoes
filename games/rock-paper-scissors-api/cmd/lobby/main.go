@@ -16,10 +16,11 @@ func main() {
 	cfg := config.Load()
 
 	lobbyRepository := repository.NewLobbyRepository()
-	lobbyService := service.NewLobbyService(lobbyRepository, cfg.LobbySize)
+	gameService := service.NewGameService(lobbyRepository)
+	lobbyService := service.NewLobbyService(lobbyRepository, gameService, cfg.LobbySize)
 	sessionRegistry := websocket.NewLobbySessionRegistry()
 	presenceRefresh := presence.NewRefreshClient(cfg.PresenceRefreshURL, cfg.InternalAPISecret)
-	wsHandler := websocket.NewLobbyWebSocketHandler(lobbyService, sessionRegistry, presenceRefresh)
+	wsHandler := websocket.NewLobbyWebSocketHandler(lobbyService, gameService, sessionRegistry, presenceRefresh)
 	statsHandler := handler.NewStatsHandler(sessionRegistry, cfg.LobbySize, cfg.MinPlayers)
 
 	http.HandleFunc("/ws/lobby", wsHandler.ServeWS)

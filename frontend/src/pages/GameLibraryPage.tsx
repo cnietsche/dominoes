@@ -128,7 +128,7 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
                         className="max-h-full max-w-full object-contain"
                       />
                     </div>
-                    <span className="min-w-0 flex-1 truncate px-4 text-lg font-semibold text-white">
+                    <span className="min-w-0 flex-1 truncate px-4 text-sm font-semibold text-white">
                       {game.name}
                     </span>
                     <div className="mr-4 flex shrink-0 items-center gap-1.5">

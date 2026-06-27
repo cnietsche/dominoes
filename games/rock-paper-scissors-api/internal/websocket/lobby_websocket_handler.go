@@ -18,20 +18,25 @@ var upgrader = websocket.Upgrader{
 
 type LobbyWebSocketHandler struct {
 	lobbyService    *service.LobbyService
+	gameService     *service.GameService
 	sessionRegistry *LobbySessionRegistry
 	presenceRefresh *presence.RefreshClient
 }
 
 func NewLobbyWebSocketHandler(
 	lobbyService *service.LobbyService,
+	gameService *service.GameService,
 	sessionRegistry *LobbySessionRegistry,
 	presenceRefresh *presence.RefreshClient,
 ) *LobbyWebSocketHandler {
-	return &LobbyWebSocketHandler{
+	handler := &LobbyWebSocketHandler{
 		lobbyService:    lobbyService,
+		gameService:     gameService,
 		sessionRegistry: sessionRegistry,
 		presenceRefresh: presenceRefresh,
 	}
+	gameService.SetStateChangeCallback(handler.broadcastGameState)
+	return handler
 }
 
 func (h *LobbyWebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +56,7 @@ func (h *LobbyWebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) 
 			hadLobbyUser = true
 			h.lobbyService.LeaveLobby(userID)
 			h.broadcastLobbyState()
+			h.broadcastGameState()
 			log.Printf("User %s removed on disconnect (session %s)", userID, session.ID)
 		}
 		h.sessionRegistry.UnregisterSession(session.ID)
@@ -85,6 +91,14 @@ func (h *LobbyWebSocketHandler) handleTextMessage(session *Session, message []by
 		h.handleJoin(session, incoming.Nickname)
 	case "LEAVE":
 		h.handleLeave(session)
+	case "START_GAME":
+		h.handleStartGame(session)
+	case "SUBMIT_CHOICE":
+		h.handleSubmitChoice(session, incoming.Choice)
+	case "DISMISS_WINNER":
+		h.handleDismissWinner(session)
+	case "CONTINUE_TO_RESULT":
+		h.handleContinueToResult(session)
 	default:
 		h.sendToSession(session, ErrorMessage("Unknown message type."))
 	}
@@ -109,6 +123,7 @@ func (h *LobbyWebSocketHandler) handleJoin(session *Session, nickname string) {
 	h.sessionRegistry.BindUser(session.ID, user.ID)
 	h.sendToSession(session, JoinAck(user.ID))
 	h.broadcastLobbyState()
+	h.broadcastGameState()
 	h.notifyPresenceRefresh()
 	log.Printf("User %s joined lobby", user.ID)
 }
@@ -122,10 +137,78 @@ func (h *LobbyWebSocketHandler) handleLeave(session *Session) {
 		log.Printf("User %s left lobby", userID)
 	}
 	h.broadcastLobbyState()
+	h.broadcastGameState()
 	h.sendToSession(session, LobbyState(h.lobbyService.GetLobbyState()))
 	if leftLobby {
 		h.notifyPresenceRefresh()
 	}
+}
+
+func (h *LobbyWebSocketHandler) handleStartGame(session *Session) {
+	if _, ok := h.sessionRegistry.FindUserID(session.ID); !ok {
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to start the game."))
+		return
+	}
+
+	_, err := h.gameService.StartGame()
+	if err != nil {
+		h.sendToSession(session, ErrorMessage(err.Error()))
+		return
+	}
+
+	h.sendToSession(session, StartGameAck())
+	h.broadcastLobbyState()
+	h.broadcastGameState()
+	log.Printf("Game started by session %s", session.ID)
+}
+
+func (h *LobbyWebSocketHandler) handleSubmitChoice(session *Session, choice string) {
+	userID, ok := h.sessionRegistry.FindUserID(session.ID)
+	if !ok {
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to submit a choice."))
+		return
+	}
+	if strings.TrimSpace(choice) == "" {
+		h.sendToSession(session, ErrorMessage("Choice is required."))
+		return
+	}
+
+	_, err := h.gameService.SubmitChoice(userID, choice)
+	if err != nil {
+		h.sendToSession(session, ErrorMessage(err.Error()))
+		return
+	}
+
+	h.sendToSession(session, SubmitChoiceAck())
+	h.broadcastGameState()
+	log.Printf("User %s submitted choice %s", userID, choice)
+}
+
+func (h *LobbyWebSocketHandler) handleContinueToResult(session *Session) {
+	userID, ok := h.sessionRegistry.FindUserID(session.ID)
+	if !ok {
+		h.sendToSession(session, ErrorMessage("You must be in the lobby to continue."))
+		return
+	}
+
+	_, err := h.gameService.ContinueToResult(userID)
+	if err != nil {
+		h.sendToSession(session, ErrorMessage(err.Error()))
+		return
+	}
+
+	h.sendToSession(session, ContinueToResultAck())
+	h.broadcastGameState()
+	log.Printf("User %s continued to result", userID)
+}
+
+func (h *LobbyWebSocketHandler) handleDismissWinner(session *Session) {
+	userID, ok := h.sessionRegistry.FindUserID(session.ID)
+	if !ok {
+		return
+	}
+	h.gameService.DismissWinner(userID)
+	h.broadcastGameState()
 }
 
 func (h *LobbyWebSocketHandler) broadcastLobbyState() {
@@ -133,6 +216,16 @@ func (h *LobbyWebSocketHandler) broadcastLobbyState() {
 	message := LobbyState(state)
 	for _, target := range h.sessionRegistry.GetAllSessions() {
 		h.sendToSession(target, message)
+	}
+}
+
+func (h *LobbyWebSocketHandler) broadcastGameState() {
+	for _, target := range h.sessionRegistry.GetAllSessions() {
+		var userID *uuid.UUID
+		if id, ok := h.sessionRegistry.FindUserID(target.ID); ok {
+			userID = &id
+		}
+		h.sendToSession(target, GameState(h.gameService.GetGameStateForUser(userID)))
 	}
 }
 

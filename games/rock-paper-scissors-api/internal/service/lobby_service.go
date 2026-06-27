@@ -10,12 +10,18 @@ import (
 
 type LobbyService struct {
 	lobbyRepository *repository.LobbyRepository
+	gameService     *GameService
 	lobbySize       int
 }
 
-func NewLobbyService(lobbyRepository *repository.LobbyRepository, lobbySize int) *LobbyService {
+func NewLobbyService(
+	lobbyRepository *repository.LobbyRepository,
+	gameService *GameService,
+	lobbySize int,
+) *LobbyService {
 	return &LobbyService{
 		lobbyRepository: lobbyRepository,
+		gameService:     gameService,
 		lobbySize:       lobbySize,
 	}
 }
@@ -27,6 +33,9 @@ func (s *LobbyService) JoinLobby(nickname string) (*entity.User, error) {
 	lobby := s.getOrCreateLobby()
 	if lobby.InProgress {
 		return nil, &exception.GameInProgressError{}
+	}
+	if lobby.WinnerID != nil || lobby.DrawPending {
+		return nil, &exception.WinnerPendingError{}
 	}
 	if s.lobbyRepository.CountByLobby(lobby) >= lobby.Size {
 		return nil, &exception.LobbyFullError{}
@@ -40,10 +49,20 @@ func (s *LobbyService) LeaveLobby(userID uuid.UUID) {
 	s.lobbyRepository.Lock()
 	defer s.lobbyRepository.Unlock()
 
-	if _, ok := s.lobbyRepository.FindUserByID(userID); !ok {
+	user, ok := s.lobbyRepository.FindUserByID(userID)
+	if !ok {
 		return
 	}
+	lobby, ok := s.lobbyRepository.FindFirstByOrderByIDAsc()
+	if !ok {
+		return
+	}
+	if lobby.InProgress {
+		s.gameService.EndGameOnLeave(lobby)
+	}
+	s.gameService.OnUserLeftLobby(lobby, userID)
 	s.lobbyRepository.DeleteUserByID(userID)
+	_ = user
 }
 
 func (s *LobbyService) GetLobbyState() dto.LobbyStateDto {
