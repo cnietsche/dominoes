@@ -11,7 +11,7 @@ import type {
 import type { PieceRotation, TablePiece } from '../types/domino';
 
 const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const WS_URL = `${WS_PROTOCOL}//${window.location.host}/ws/lobby`;
+const WS_URL = `${WS_PROTOCOL}//${window.location.host}/ws/dominoes/lobby`;
 
 type PendingResolver = {
   resolve: (message: IncomingMessage) => void;

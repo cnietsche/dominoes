@@ -2,7 +2,8 @@ package com.dominoes.gamelibrary.domain;
 
 public enum GameEnum {
 
-    DOMINOES("Dominoes", "/icons/dominoes.png");
+    DOMINOES("Dominoes", "/icons/dominoes.png"),
+    ROCK_PAPER_SCISSORS("Rock Paper Scissors", "/icons/rock-paper-scissors.png");
 
     private final String name;
     private final String image;

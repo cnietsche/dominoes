@@ -14,30 +14,45 @@ public class GameStatsClient {
 
     private final RestClient restClient;
     private final String dominoesStatsUrl;
+    private final String rockPaperScissorsStatsUrl;
 
-    public GameStatsClient(@Value("${games.dominoes.stats-url}") String dominoesStatsUrl) {
+    public GameStatsClient(
+            @Value("${games.dominoes.stats-url}") String dominoesStatsUrl,
+            @Value("${games.rock-paper-scissors.stats-url}") String rockPaperScissorsStatsUrl) {
         this.dominoesStatsUrl = dominoesStatsUrl;
+        this.rockPaperScissorsStatsUrl = rockPaperScissorsStatsUrl;
         this.restClient = RestClient.create();
     }
 
     public Map<String, GameLobbyInfoDto> fetchGameLobbies() {
         Map<String, GameLobbyInfoDto> gameLobbies = new LinkedHashMap<>();
 
+        fetchStats(gameLobbies, dominoesStatsUrl, "DOMINOES", 4, 1);
+        fetchStats(gameLobbies, rockPaperScissorsStatsUrl, "ROCK_PAPER_SCISSORS", 2, 2);
+
+        return gameLobbies;
+    }
+
+    private void fetchStats(
+            Map<String, GameLobbyInfoDto> gameLobbies,
+            String statsUrl,
+            String fallbackGameId,
+            int fallbackMax,
+            int fallbackMin) {
         try {
             GameOnlineStatsDto stats = restClient.get()
-                    .uri(dominoesStatsUrl)
+                    .uri(statsUrl)
                     .retrieve()
                     .body(GameOnlineStatsDto.class);
             if (stats != null && stats.gameId() != null) {
                 gameLobbies.put(
                         stats.gameId(),
                         new GameLobbyInfoDto(stats.count(), stats.lobbySize(), stats.minPlayers()));
+                return;
             }
         } catch (Exception ignored) {
-            gameLobbies.put("DOMINOES", new GameLobbyInfoDto(0, 4, 1));
+            // fall through to default
         }
-
-        gameLobbies.putIfAbsent("DOMINOES", new GameLobbyInfoDto(0, 4, 1));
-        return gameLobbies;
+        gameLobbies.putIfAbsent(fallbackGameId, new GameLobbyInfoDto(0, fallbackMax, fallbackMin));
     }
 }

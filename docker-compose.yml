@@ -5,6 +5,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production-must-be-at-least-32-chars}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev-internal-secret}
       DOMINOES_STATS_URL: http://dominoes-api:8081/stats/online
+      ROCK_PAPER_SCISSORS_STATS_URL: http://rock-paper-scissors-api:8082/stats/online
     volumes:
       - h2-data:/data
     networks:
@@ -20,6 +21,16 @@ services:
     networks:
       - app-net
 
+  rock-paper-scissors-api:
+    build: ./games/rock-paper-scissors-api
+    environment:
+      LOBBY_SIZE: ${RPS_LOBBY_SIZE:-2}
+      LOBBY_MIN_PLAYERS: ${RPS_LOBBY_MIN_PLAYERS:-2}
+      PRESENCE_REFRESH_URL: http://game-library-api:8080/internal/presence/refresh
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev-internal-secret}
+    networks:
+      - app-net
+
   frontend:
     build: ./frontend
     ports:
@@ -27,6 +38,7 @@ services:
     depends_on:
       - game-library-api
       - dominoes-api
+      - rock-paper-scissors-api
     networks:
       - app-net
 

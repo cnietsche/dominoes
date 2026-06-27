@@ -25,3 +25,5 @@ internal:
 games:
   dominoes:
     stats-url: ${DOMINOES_STATS_URL:http://dominoes-api:8081/stats/online}
+  rock-paper-scissors:
+    stats-url: ${ROCK_PAPER_SCISSORS_STATS_URL:http://rock-paper-scissors-api:8082/stats/online}
