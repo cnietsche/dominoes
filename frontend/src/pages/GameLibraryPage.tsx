@@ -45,8 +45,34 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
   }, [token]);
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="safe-area-x safe-area-top relative shrink-0 border-b border-slate-700 py-4">
+    <div className="relative flex min-h-dvh flex-col overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <img
+          src="/background/gear.png"
+          alt=""
+          className="gear-bg-spin gear-bg-size absolute top-[30%] left-0 opacity-[0.5]"
+        />
+        <img
+          src="/background/gear.png"
+          alt=""
+          className="gear-bg-spin-reverse-left gear-bg-size-sm absolute top-[70%] left-0 opacity-[0.5]"
+        />
+        <img
+          src="/background/gear.png"
+          alt=""
+          className="gear-bg-spin-right gear-bg-size absolute top-[70%] right-0 opacity-[0.5]"
+        />
+        <img
+          src="/background/gear.png"
+          alt=""
+          className="gear-bg-spin-reverse gear-bg-size-sm absolute top-[30%] right-0 opacity-[0.5]"
+        />
+      </div>
+
+      <header className="safe-area-x safe-area-top relative backdrop-blur z-10 shrink-0 border-b border-slate-700 py-4">
         <div className="flex flex-col justify-center pr-28">
           <h1 className="text-xl font-bold text-white sm:text-2xl">Game library</h1>
           <div className="mt-1 flex flex-wrap gap-2">
@@ -75,7 +101,7 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
         </button>
       </header>
 
-      <main className="safe-area-x safe-area-bottom flex min-h-0 flex-1 flex-col overflow-y-auto pt-4">
+      <main className="safe-area-x safe-area-bottom relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto pt-4">
         {loading && <p className="text-slate-400">Loading games...</p>}
 
         {!loading && error && <p className="text-red-400">{error}</p>}
@@ -93,7 +119,7 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
                   <button
                     type="button"
                     onClick={() => navigate(`/games/${game.id}`)}
-                    className="flex h-16 w-full items-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/80 text-left transition hover:border-slate-500 hover:bg-slate-800 active:bg-slate-900"
+                    className="flex h-16 w-full items-center overflow-hidden rounded-2xl border border-white/10 bg-slate-900/25 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xs transition hover:border-white/20 hover:bg-slate-900/35 active:bg-slate-900/45"
                   >
                     <div className="flex h-full w-1/5 shrink-0 items-center justify-center px-2">
                       <img
@@ -106,10 +132,10 @@ export function GameLibraryPage({ nickname, token, onLogoff }: GameLibraryPagePr
                       {game.name}
                     </span>
                     <div className="mr-4 flex shrink-0 items-center gap-1.5">
-                      <span className="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs tabular-nums text-slate-300">
+                      <span className="rounded-full border border-white/5 bg-slate-900/40 px-2.5 py-0.5 text-xs tabular-nums text-slate-300 backdrop-blur-sm">
                         min: {lobbyMin}
                       </span>
-                      <span className="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs tabular-nums text-slate-300">
+                      <span className="rounded-full border border-white/5 bg-slate-900/40 px-2.5 py-0.5 text-xs tabular-nums text-slate-300 backdrop-blur-sm">
                         Lobby {lobbyCount}/{lobbyMax}
                       </span>
                     </div>

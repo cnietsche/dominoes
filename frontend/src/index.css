@@ -26,3 +26,65 @@ body {
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
 }
+
+@keyframes gear-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes gear-spin-reverse {
+  from {
+    transform: translate(50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(50%, -50%) rotate(-360deg);
+  }
+}
+
+@keyframes gear-spin-reverse-left {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+@keyframes gear-spin-right {
+  from {
+    transform: translate(50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(50%, -50%) rotate(360deg);
+  }
+}
+
+.gear-bg-spin {
+  animation: gear-spin 32s linear infinite;
+}
+
+.gear-bg-spin-reverse-left {
+  animation: gear-spin-reverse-left 32s linear infinite;
+}
+
+.gear-bg-spin-right {
+  animation: gear-spin-right 32s linear infinite;
+}
+
+.gear-bg-spin-reverse {
+  animation: gear-spin-reverse 32s linear infinite;
+}
+
+.gear-bg-size {
+  width: min(105vw, 33rem);
+  height: min(105vw, 33rem);
+}
+
+.gear-bg-size-sm {
+  width: min(52vw, 16.5rem);
+  height: min(52vw, 16.5rem);
+}
