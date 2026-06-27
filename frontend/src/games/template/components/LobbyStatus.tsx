@@ -1,0 +1,40 @@
+interface LobbyConnectionInfoProps {
+  connected: boolean;
+  userCount: number;
+  size: number;
+}
+
+export function LobbyConnectionInfo({
+  connected,
+  userCount,
+  size,
+}: LobbyConnectionInfoProps) {
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1.5">
+      <span
+        className={`inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-full px-3 text-xs ${
+          connected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+        }`}
+      >
+        <span className={`h-2 w-2 shrink-0 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+        {connected ? 'Connected' : 'Disconnected'}
+      </span>
+
+      <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-slate-800 px-3 text-xs tabular-nums">
+        {userCount} / {size} players
+      </span>
+    </div>
+  );
+}
+
+export function LobbyGameInfo({ joined }: { joined: boolean }) {
+  if (!joined) {
+    return null;
+  }
+
+  return (
+    <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-blue-500/20 px-3 text-xs text-blue-300">
+      In lobby
+    </span>
+  );
+}

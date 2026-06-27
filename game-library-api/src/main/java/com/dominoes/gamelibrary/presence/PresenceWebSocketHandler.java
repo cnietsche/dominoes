@@ -49,7 +49,6 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
             registry.setLocation(session.getId(), location);
             broadcastService.broadcast();
         } catch (Exception ignored) {
-            // ignore malformed messages
         }
     }
 

@@ -51,7 +51,6 @@ public class GameStatsClient {
                 return;
             }
         } catch (Exception ignored) {
-            // fall through to default
         }
         gameLobbies.putIfAbsent(fallbackGameId, new GameLobbyInfoDto(0, fallbackMax, fallbackMin));
     }

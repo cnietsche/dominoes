@@ -62,7 +62,6 @@ public class PresenceBroadcastService {
                 try {
                     session.sendMessage(textMessage);
                 } catch (IOException ignored) {
-                    // session will be cleaned up on close
                 }
             }
         }

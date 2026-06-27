@@ -140,7 +140,6 @@ export function usePresenceWebSocket(token: string, location: PresenceLocation) 
             setStats(parsed);
           }
         } catch {
-          // ignore malformed messages
         }
       };
 

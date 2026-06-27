@@ -48,6 +48,5 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
             ServerHttpResponse response,
             WebSocketHandler wsHandler,
             Exception exception) {
-        // no-op
     }
 }
